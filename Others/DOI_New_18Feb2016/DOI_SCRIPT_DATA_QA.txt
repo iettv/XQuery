@@ -1,0 +1,37 @@
+import module namespace constants = "http://www.TheIET.org/constants"   at "/Utils/constants.xqy";
+let $Videos :=<records><record><no>7643</no><doi>10.1049/iet-tv.48.48</doi></record><record><no>7631</no><doi>10.1049/iet-tv.46.140</doi></record></records>
+
+for $eachVideo in $Videos/record
+let $DOI:= $eachVideo/doi/text()
+let $VNumber:= $eachVideo/no/text()
+(:let $updatedDoi     := fn:concat($DOI,$VNumber):)
+let $VideoID        := collection("Video")/Video[VideoNumber=$VNumber]/@ID/string()
+let $VideoURI 			:= fn:concat($constants:VIDEO_DIRECTORY,$VideoID,".xml")
+let $PHistoryUri		:= fn:concat($constants:PCOPY_DIRECTORY,$VideoID,".xml")
+return
+  (
+    if(fn:doc-available($VideoURI))
+    then
+      let $doc := fn:doc($VideoURI)
+      return
+        if( $doc/Video/PublishInfo[VideoPublish/@active="yes"] )
+        then xdmp:node-replace($doc/Video/PublishInfo/VideoPublish/DOI, <DOI>{$DOI}</DOI>)
+        else
+        if( $doc/Video/PublishInfo[LivePublish/@active="yes"] )
+        then xdmp:node-replace($doc/Video/PublishInfo/LivePublish/DOI, <DOI>{$DOI}</DOI>)
+        else xdmp:log(("======doi not replaced in =============", $VideoURI))
+    else xdmp:log(("======document not available=============", $VideoURI))
+    ,
+    if(fn:doc-available($PHistoryUri))
+    then
+      let $doc := fn:doc($PHistoryUri)
+      return
+        if( $doc/Video/PublishInfo[VideoPublish/@active="yes"] )
+        then xdmp:node-replace($doc/Video/PublishInfo/VideoPublish/DOI, <DOI>{$DOI}</DOI>)
+        else
+        if( $doc/Video/PublishInfo[LivePublish/@active="yes"] )
+        then xdmp:node-replace($doc/Video/PublishInfo/LivePublish/DOI, <DOI>{$DOI}</DOI>)
+        else xdmp:log(("======doi not replaced in =============", $PHistoryUri))
+    else xdmp:log(("======document not available=============", $PHistoryUri))
+   )    
+   

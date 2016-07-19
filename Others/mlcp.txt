@@ -1,0 +1,6 @@
+Change -port number
+change -input_file_path
+change - output_uri_replace 
+===========================================
+mlcp.bat import -host localhost -port 9501 -username admin -password admin -input_file_path C:/XML/17022015/ -mode local -output_uri_replace "C:/XML/17022015/,''" -transform_module ../transform.xqy -transform_namespace "http://www.TheIET.org/VideoIngestion" -transform_param "my-value"
+

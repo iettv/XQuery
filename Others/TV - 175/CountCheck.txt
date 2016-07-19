@@ -1,0 +1,24 @@
+Subscription Type:
+
+1. Following xquery will result the number of records which are blank.
+count(doc()/Activity//Action/AdditionalInfo/NameValue[matches(Name,'SubscriptionType')]/Value[.=''])
+
+2. Following xquery will result the number of records which are not blank.
+count(doc()/Activity//Action/AdditionalInfo/NameValue[matches(Name,'SubscriptionType')]/Value[.!=''])
+
+
+Video Title:
+
+1. Following xquery will result the number of records which are blank.
+count(doc()/Activity//Action/AdditionalInfo/NameValue[matches(Name,'VideoTitle')]/Value[.=''])
+
+2. Following xquery will result the number of records which are not blank.
+count(doc()/Activity//Action/AdditionalInfo/NameValue[matches(Name,'VideoTitle')]/Value[.!=''])
+
+Duration:
+
+1. Following xquery will result the number of records which are blank.
+count(doc()/Activity//Action/AdditionalInfo/NameValue[matches(Name,'Duration)]/Value[.=''])
+
+2. Following xquery will result the number of records which are not blank.
+count(doc()/Activity//Action/AdditionalInfo/NameValue[matches(Name,'Duration')]/Value[.!=''])

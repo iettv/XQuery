@@ -1,0 +1,63 @@
+Old ID: 14993 – Video ID 7964
+GUID : 921a207a-c332-42fd-9c1a-b3b2faa12da5
+UploadDate : 2012-09-27T14:09:38.0000
+Stream ID for linking: 0_k1a7us9r
+Video file name - The modelling, simulation and experimental testing of vertical vibrations in an elevator system with 1:1 roping configuration.mp4
+Title: The modelling, simulation and experimental testing of vertical vibrations in an elevator system with 1:1 roping configuration
+Times: 12:10 – 12:30
+Speaker: Xabier Arrasate, Mondragon Unibertsitatea, Spain.
+
+Old ID: 14994 – Video ID 7965
+GUID : 14b63ad0-a1c1-4a71-ae6f-c9e3b1289dec
+UploadDate : 2012-09-27T14:10:38.0000
+Stream ID for linking: 0_t3egdul4
+Video file name - Analysis Of The Frequency Behaviour Of Elevator Systems.mp4
+Title: Analysis Of The Frequency Behaviour Of Elevator Systems
+Times: 11:50 – 12:10
+Speaker: Ingo Pletschen, ThyssenKrupp Aufzugswerke, Germany
+ 
+Old ID: 14995 – Video ID 7969
+GUID : 8b526a7b-33cb-4ce3-81be-4d89b22b2487
+UploadDate : 2012-09-27T14:11:38.0000
+Stream ID for linking: 0_dwo1y0ax
+Video file name - Lift Performance Time.mp4
+Title: Lift Performance Time
+Times: 13:50 – 14:10
+Speaker: Dr Richard Peters, Peters Research Ltd, UK
+ 
+Old ID: 14997: - Video ID 7970
+GUID : 09a07794-0cf9-4c7f-9023-ac9cd759289b
+UploadDate : 2012-09-27T14:12:38.0000
+Stream ID for linking: 0_bg0rloku
+Video file name - Origin Destination Matrix Estimation And Prediction In Vertical Transportation.mp4
+Title: Origin Destination Matrix Estimation And Prediction In Vertical Transportation
+Times: 10:30 – 10:50
+Speaker: Maite Beamurgia, Mondragon University, Spain
+ 
+Old ID: 14998 – Video ID 7971
+GUID : 6f11a910-18c2-4dc0-9179-aa933fb14ca8
+UploadDate : 2012-09-27T14:13:38.0000
+Stream ID for linking: 0_e4gheui9
+Video file name - Energy Models For Lifts.mp4
+Title: Energy Models For Lifts
+Times: 10:10 – 10:30
+Speaker: Ana M. Lorente-Lafuente, Universidad de Zaragoza, Spain
+ 
+Old ID: 15001 – Video ID 7972
+GUID : 60f9cb10-7f5c-4ec6-9f93-49645f767cf6
+UploadDate : 2012-09-27T14:14:38.0000
+Stream ID for linking: 0_lbyvziui
+Video file name - Traffic Analysis Based On The Up Peak Round Trip Time Method Why It Works And How It Can Be Improved.mp4
+Title: Traffic Analysis Based On The Up Peak Round Trip Time Method Why It Works And How It Can Be Improved
+Times: 14:20 – 14:40
+Speaker: Dr Rory Smith, ThyssenKrupp Elevator, United Arab Emirates.
+   
+Old ID: 15005 – Video ID 7973
+GUID : 967b3c50-5265-4e1a-9ae3-cc40b35814b2
+UploadDate : 2012-09-27T14:15:38.0000
+Stream ID for linking: 0_os0xpahn
+Video file name - Standards, Who Needs Them, Who Creates Them And How Are They Created.mp4
+Title: Standards, Who Needs Them, Who Creates Them And How Are They Created
+Times:16:20 – 16:50
+Speaker: Derek Smith
+Formerly Technical Director of LEIA UK

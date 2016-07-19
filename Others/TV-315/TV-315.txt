@@ -1,0 +1,207 @@
+xquery version "1.0-ml";
+
+import module namespace constants = "http://www.TheIET.org/constants"   at "/Utils/constants.xqy";
+
+let $Videos := 
+<videos>
+<video ID="921a207a-c332-42fd-9c1a-b3b2faa12da5">
+<UploadVideo>
+    <File ftpUpload="No" streamID="0_k1a7us9r" active="No">
+      <MediaType>VIDEO</MediaType>
+      <Duration>00:20:00</Duration>
+      <UploadStatus>READY</UploadStatus>
+      <FileName>The modelling, simulation and experimental testing of vertical vibrations in an elevator system with 1:1 roping configuration.mp4</FileName>
+      <UploadDate>2012-09-27T14:09:38.0000</UploadDate>
+      <Size>
+      </Size>
+      <Format>mp4</Format>
+      <ThumbnailFilepath>
+      </ThumbnailFilepath>
+      <NotificationCount>0</NotificationCount>
+      <URL>http://open.http.mp.streamamg.com/p/2000369/sp/200036900/thumbnail/entry_id/0_k1a7us9r/version/0</URL>
+	  <Person ID="52">
+		<Name>
+		<Given-Name>Susan</Given-Name>
+		<Surname>Portwood</Surname>
+		<Suffix/>
+		</Name>
+		<EmailID>SPortwood@theiet.org</EmailID>
+	  </Person>
+    </File>
+  </UploadVideo>
+</video>
+<video ID="14b63ad0-a1c1-4a71-ae6f-c9e3b1289dec">
+<UploadVideo>
+    <File ftpUpload="No" streamID="0_t3egdul4" active="No">
+      <MediaType>VIDEO</MediaType>
+      <Duration>00:20:00</Duration>
+      <UploadStatus>READY</UploadStatus>
+      <FileName>Analysis Of The Frequency Behaviour Of Elevator Systems.mp4</FileName>
+      <UploadDate>2016-02-01T14:10:38.0000</UploadDate>
+      <Size>
+      </Size>
+      <Format>mp4</Format>
+      <ThumbnailFilepath>
+      </ThumbnailFilepath>
+      <NotificationCount>0</NotificationCount>
+      <URL>http://open.http.mp.streamamg.com/p/2000369/sp/200036900/thumbnail/entry_id/0_t3egdul4/version/0</URL>
+      <Person ID="52">
+		<Name>
+		<Given-Name>Susan</Given-Name>
+		<Surname>Portwood</Surname>
+		<Suffix/>
+		</Name>
+		<EmailID>SPortwood@theiet.org</EmailID>
+	  </Person>
+    </File>
+  </UploadVideo>
+</video>
+<video ID="8b526a7b-33cb-4ce3-81be-4d89b22b2487">
+<UploadVideo>
+    <File ftpUpload="No" streamID="0_dwo1y0ax" active="No">
+      <MediaType>VIDEO</MediaType>
+      <Duration>00:20:00</Duration>
+      <UploadStatus>READY</UploadStatus>
+      <FileName>Lift Performance Time.mp4</FileName>
+      <UploadDate>2012-09-27T14:11:38.0000</UploadDate>
+      <Size>
+      </Size>
+      <Format>mp4</Format>
+      <ThumbnailFilepath>
+      </ThumbnailFilepath>
+      <NotificationCount>0</NotificationCount>
+      <URL>http://open.http.mp.streamamg.com/p/2000369/sp/200036900/thumbnail/entry_id/0_dwo1y0ax/version/0</URL>
+      <Person ID="52">
+		<Name>
+		<Given-Name>Susan</Given-Name>
+		<Surname>Portwood</Surname>
+		<Suffix/>
+		</Name>
+		<EmailID>SPortwood@theiet.org</EmailID>
+	  </Person>
+    </File>
+  </UploadVideo>
+</video>
+<video ID="09a07794-0cf9-4c7f-9023-ac9cd759289b">
+<UploadVideo>
+    <File ftpUpload="No" streamID="0_bg0rloku" active="No">
+      <MediaType>VIDEO</MediaType>
+      <Duration>00:20:00</Duration>
+      <UploadStatus>READY</UploadStatus>
+      <FileName>Origin Destination Matrix Estimation And Prediction In Vertical Transportation.mp4</FileName>
+      <UploadDate>2012-09-27T14:12:38.0000</UploadDate>
+      <Size>
+      </Size>
+      <Format>mp4</Format>
+      <ThumbnailFilepath>
+      </ThumbnailFilepath>
+      <NotificationCount>0</NotificationCount>
+      <URL>http://open.http.mp.streamamg.com/p/2000369/sp/200036900/thumbnail/entry_id/0_bg0rloku/version/0</URL>
+      <Person ID="52">
+		<Name>
+		<Given-Name>Susan</Given-Name>
+		<Surname>Portwood</Surname>
+		<Suffix/>
+		</Name>
+		<EmailID>SPortwood@theiet.org</EmailID>
+	  </Person>
+    </File>
+  </UploadVideo>
+</video>
+<video ID="6f11a910-18c2-4dc0-9179-aa933fb14ca8">
+<UploadVideo>
+    <File ftpUpload="No" streamID="0_e4gheui9" active="No">
+      <MediaType>VIDEO</MediaType>
+      <Duration>00:20:00</Duration>
+      <UploadStatus>READY</UploadStatus>
+      <FileName>Energy Models For Lifts.mp4</FileName>
+      <UploadDate>2012-09-27T14:13:38.0000</UploadDate>
+      <Size>
+      </Size>
+      <Format>mp4</Format>
+      <ThumbnailFilepath>
+      </ThumbnailFilepath>
+      <NotificationCount>0</NotificationCount>
+      <URL>http://open.http.mp.streamamg.com/p/2000369/sp/200036900/thumbnail/entry_id/0_e4gheui9/version/0</URL>
+      <Person ID="52">
+		<Name>
+		<Given-Name>Susan</Given-Name>
+		<Surname>Portwood</Surname>
+		<Suffix/>
+		</Name>
+		<EmailID>SPortwood@theiet.org</EmailID>
+	  </Person>
+    </File>
+  </UploadVideo>
+</video>
+<video ID="60f9cb10-7f5c-4ec6-9f93-49645f767cf6">
+<UploadVideo>
+    <File ftpUpload="No" streamID="0_lbyvziui" active="No">
+      <MediaType>VIDEO</MediaType>
+      <Duration>00:20:00</Duration>
+      <UploadStatus>READY</UploadStatus>
+      <FileName>Traffic Analysis Based On The Up Peak Round Trip Time Method Why It Works And How It Can Be Improved.mp4</FileName>
+      <UploadDate>2012-09-27T14:14:38.0000</UploadDate>
+      <Size>
+      </Size>
+      <Format>mp4</Format>
+      <ThumbnailFilepath>
+      </ThumbnailFilepath>
+      <NotificationCount>0</NotificationCount>
+      <URL>http://open.http.mp.streamamg.com/p/2000369/sp/200036900/thumbnail/entry_id/0_lbyvziui/version/0</URL>
+      <Person ID="52">
+		<Name>
+		<Given-Name>Susan</Given-Name>
+		<Surname>Portwood</Surname>
+		<Suffix/>
+		</Name>
+		<EmailID>SPortwood@theiet.org</EmailID>
+	  </Person>
+    </File>
+  </UploadVideo>
+</video>
+<video ID="967b3c50-5265-4e1a-9ae3-cc40b35814b2">
+<UploadVideo>
+    <File ftpUpload="No" streamID="0_os0xpahn" active="No">
+      <MediaType>VIDEO</MediaType>
+      <Duration>00:30:00</Duration>
+      <UploadStatus>READY</UploadStatus>
+      <FileName>Standards, Who Needs Them, Who Creates Them And How Are They Created.mp4</FileName>
+      <UploadDate>2012-09-27T14:15:38.0000</UploadDate>
+      <Size>
+      </Size>
+      <Format>mp4</Format>
+      <ThumbnailFilepath>
+      </ThumbnailFilepath>
+      <NotificationCount>0</NotificationCount>
+      <URL>http://open.http.mp.streamamg.com/p/2000369/sp/200036900/thumbnail/entry_id/0_os0xpahn/version/0</URL>
+      <Person ID="52">
+		<Name>
+		<Given-Name>Susan</Given-Name>
+		<Surname>Portwood</Surname>
+		<Suffix/>
+		</Name>
+		<EmailID>SPortwood@theiet.org</EmailID>
+	  </Person>
+    </File>
+  </UploadVideo>
+</video>
+</videos>
+
+for $eachVideo in $Videos//video
+
+let $VideoID        := $eachVideo/@ID/string() 
+let $VideoURI 			:= fn:concat($constants:VIDEO_DIRECTORY,$VideoID,".xml")
+let $UploadVideo  		:= $eachVideo/UploadVideo
+return
+  (
+    if(fn:doc-available($VideoURI))
+    then
+      let $doc := fn:doc($VideoURI)
+      return
+        if($doc/Video/UploadVideo)
+        then xdmp:node-replace(doc($VideoURI)/Video/UploadVideo,$UploadVideo)
+        else xdmp:node-insert-after(doc($VideoURI)/Video/ClientInfo,$UploadVideo)
+   else xdmp:log(("======document not available=============", $VideoURI))
+   )  
+   
