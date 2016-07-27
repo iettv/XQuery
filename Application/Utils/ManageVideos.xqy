@@ -134,10 +134,7 @@ declare function isLiveVideoActive($Video as item())
 
 declare function ExcludeMostPopular($Video as item())
 {
-    let $IsExcludeMostPopular := if($Video/Video/AdvanceInfo/PermissionDetails/Permission[@type="ExcludeMostPopular"]/@status/string() = "yes")  then fn:true() else fn:false()
-	return if($IsExcludeMostPopular = fn:true())
-		   then fn:true()
-		   else fn:false()
+    if($Video/Video/AdvanceInfo/PermissionDetails/Permission[@type="ExcludeMostPopular" and @status = "yes"])  then fn:true() else fn:false()
 };
 
 declare function GetVideoElementForHomePage( $videos ) as item()*
@@ -386,11 +383,12 @@ declare function GetVideoMostPopularByCount($popularCount as xs:integer)
 				let $TrueID := <Video></Video>
 				let $UpdateID :=  for $VideoID in $PopularFile//Video/VideoID/text()
 				                  let $DocUri := fn:concat($constants:PCOPY_DIRECTORY, $VideoID, ".xml")
-				                  let $IsExcludeMostPopular := ExcludeMostPopular(doc($DocUri))
+				                  (:let $IsExcludeMostPopular := ExcludeMostPopular(doc($DocUri)):)
 								  return
 									if(fn:count($TrueID/VID) lt $popularCount ) 
 									then
-									  if(fn:doc-available($DocUri) and $IsExcludeMostPopular eq fn:false() ) then xdmp:set($TrueID,mem:node-insert-child($TrueID,<VID>{$VideoID}</VID>)) else ()
+									  (:if(fn:doc-available($DocUri) and $IsExcludeMostPopular eq fn:false() ) then xdmp:set($TrueID,mem:node-insert-child($TrueID,<VID>{$VideoID}</VID>)) else () :)
+									  if(fn:doc-available($DocUri)) then xdmp:set($TrueID,mem:node-insert-child($TrueID,<VID>{$VideoID}</VID>)) else ()
 									else ()
 				for $VideoID in $TrueID/VID/text()
 				let $VideoDoc := fn:doc(concat($constants:PCOPY_DIRECTORY, $VideoID, ".xml"))
@@ -429,18 +427,11 @@ declare function GeneratePopularListAndGetPopularIdByCount($SkipChannel as item(
 																	let $VideoDoc := doc($VideoUri)
 																	let $IsSkipChannelVideo  := isVideoRelatedToSkipChannel($SkipChannel,$VideoDoc)
 																	let $IsVideoActive := if($VideoDoc/Video/PublishInfo/VideoPublish/@active/string() = "yes") then isVideoActive($VideoDoc) else isLiveVideoActive($VideoDoc)
-																	let $IsExcludeMostPopular := ExcludeMostPopular($VideoDoc)
 																	let $IsVideoAvailable := doc-available($VideoUri)
 																	return
-																		(
-																			if(  $IsExcludeMostPopular eq fn:false() )
-																			then xdmp:set($UpdatePopuarList, mem:node-delete($UpdatePopuarList/Video[VideoID = $VideoID]))
-																			else ()
-																			,
-																			if( ($IsSkipChannelVideo eq fn:true()) or ($IsVideoActive eq fn:false()) or ($IsVideoAvailable eq fn:false()) )
-																			then xdmp:set($UpdatePopuarList, mem:node-delete($UpdatePopuarList/Video[VideoID = $VideoID]))
-																			else ()
-																		)
+																		if( ($IsSkipChannelVideo eq fn:true()) or ($IsVideoActive eq fn:false()) or ($IsVideoAvailable eq fn:false()) )
+																		then xdmp:set($UpdatePopuarList, mem:node-delete($UpdatePopuarList/Video[VideoID = $VideoID]))
+																		else ()
 												return $UpdatePopuarList
 			let $SavePopularXML := 	xdmp:eval(	" 	xquery version '1.0-ml';
 													import module namespace constants  = 'http://www.TheIET.org/constants' at '/Utils/constants.xqy';
@@ -455,16 +446,20 @@ declare function GeneratePopularListAndGetPopularIdByCount($SkipChannel as item(
 												</options>
 											)
 			let $Log := xdmp:log("****************Popular Video File generated and saved successfully****************")
-			return
-				<CommonMostPopular>
-					{
-						for $Video in $CurrentMostPopularList//Video[position() le $popularCount ]
-						let $IsVideoAvailable := doc-available(concat($constants:PCOPY_DIRECTORY ,$Video/VideoID/text(),'.xml'))
-						let $VideoID := $Video/VideoID/string()
-						return
-							if($IsVideoAvailable eq fn:true()) then <VideoID>{$Video/VideoID/text()}</VideoID> else ()
-					}
-				</CommonMostPopular>
+			let $PopularCount := <CommonMostPopular></CommonMostPopular>
+			let $UpdateID :=  for $VideoID in $CurrentMostPopularList//Video/VideoID/text()
+							  let $DocUri := fn:concat($constants:PCOPY_DIRECTORY, $VideoID, ".xml")
+							  let $IsExcludeMostPopular := ExcludeMostPopular(doc($DocUri))
+							  let $IsVideoAvailable := doc-available($DocUri)
+							  return
+								if(fn:count($PopularCount/VideoID) lt $popularCount ) 
+								then
+								  if($IsVideoAvailable eq fn:true() and $IsExcludeMostPopular eq fn:false())
+								  then xdmp:set($PopularCount,mem:node-insert-child($PopularCount,<VideoID>{$VideoID}</VideoID>))
+								  else ()
+								else ()
+			return $PopularCount
+
 			
 		else
 			xdmp:log(concat("[ VideoPopular ][ Fail ][ Invalid popular-count ][ POPULAR-COUNT: ", $popularCount, " ]"))

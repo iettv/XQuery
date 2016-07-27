@@ -44,7 +44,7 @@ declare function isVideoIDExists($CarouselXml as item()) (: 11111#3333 :)
 
 declare function VideoIDList($CarouselXml as item())
 {
-let $VideoIDList := for $VideoID in $CarouselXml//Video/VideoId[.!=''] return concat($VideoID,"")
+let $VideoIDList := for $VideoID in $CarouselXml//Video[Type='VideoId']/VideoId[.!=''] return concat($VideoID,"")
 let $VideoIDList := fn:string-join($VideoIDList, " ")
 return $VideoIDList
 };
@@ -55,9 +55,8 @@ declare function ConfigureCarouselVideos($CarouselXml as item(), $Flag as xs:str
 	let $SkipChannel  := $CarouselXml/CarouselConfiguration/SkipChannel
 	let $CurrentMostPopularList := if($Flag='Scheduler') then VIDEOS:GeneratePopularListAndGetPopularIdByCount($SkipChannel,25) else VIDEOS:GetVideoPopularByCount(25)
 	let $LatestVideoList := VIDEOS:GenerateLatestListAndGetLatestIdByCount($SkipChannel,25)
-	let $VideoIDList := VideoIDList($UpdatedCarouselVideoWithID)
+	let $VideoIDList := ""
 	let $ForthComingVideos := VIDEOS:GenerateForthComingList($SkipChannel)
-	
 	let $ProcessToUpdagteCarouselXml := for $VideoFile  at $Pos in  $CarouselXml//Video
 										let $Log  := xdmp:log(fn:concat("[ VideoTypeText ][ ", $VideoFile/Type/text(), " ]"))
 										return
@@ -73,7 +72,7 @@ declare function ConfigureCarouselVideos($CarouselXml as item(), $Flag as xs:str
 											return
 												if(($IsSkipChannelVideo eq fn:true()) or ($IsVideoAvailable eq fn:false()) or ($IsVideoActive eq fn:false()))
 												then xdmp:set($UpdatedCarouselVideoWithID, mem:node-replace($UpdatedCarouselVideoWithID/CarouselConfiguration/Video[$Pos]/VideoId, <VideoId>This video is not active </VideoId>))
-												else ""
+												else xdmp:set($VideoIDList, concat($VideoIDList, " ",$VideoID))
 										else
 										(: To set Carousel configuration for those video where Type=LatestVideo :)
 										if( $VideoFile/Type/text() eq "LatestVideo" )
@@ -107,34 +106,29 @@ declare function ConfigureCarouselVideos($CarouselXml as item(), $Flag as xs:str
 										(: To set Carousel configuration for those video where Type=MostPopularVideo :)
 										if( $VideoFile/Type/text() eq "MostPopularVideo" )
 										then
-											let $set := fn:true()
-											return
 												if(count($CurrentMostPopularList/VideoID) eq 0)
 												then
 													xdmp:set($UpdatedCarouselVideoWithID, mem:node-replace($UpdatedCarouselVideoWithID/CarouselConfiguration/Video[$Pos]/VideoId, <VideoId>Popular Video is unavailable</VideoId>))
 												else
 													(
-														for $EachPopularVideoID in $CurrentMostPopularList/VideoID/string()
+														let $EachPopularVideoID := (for $x in $CurrentMostPopularList/VideoID/string()
+														                           return if( not(fn:contains($VideoIDList,$x)) ) then $x else ())[1]
 														return
-															if(not($EachPopularVideoID) and ($set))
-															then 
-																(
-																	xdmp:set($UpdatedCarouselVideoWithID, mem:node-replace($UpdatedCarouselVideoWithID/CarouselConfiguration/Video[$Pos]/VideoId, <VideoId>Popular Video is unavailable</VideoId>)),
-																	xdmp:set($set,fn:false())
-																)
+															if( not($EachPopularVideoID) )
+															then
+																xdmp:set($UpdatedCarouselVideoWithID, mem:node-replace($UpdatedCarouselVideoWithID/CarouselConfiguration/Video[$Pos]/VideoId, <VideoId>Popular Video is unavailable</VideoId>))
 															else
-															if(not(fn:contains($VideoIDList,$EachPopularVideoID)) and ($set))
+															if( not(fn:contains($VideoIDList,$EachPopularVideoID)) )
 															then
 															  (
 																  xdmp:set($VideoIDList, concat($VideoIDList, " ",$EachPopularVideoID)),
-																  xdmp:set($set,fn:false()),
 																  xdmp:set($UpdatedCarouselVideoWithID, mem:node-replace($UpdatedCarouselVideoWithID/CarouselConfiguration/Video[$Pos]/VideoId, <VideoId>{$EachPopularVideoID}</VideoId>))
 															  )
 															else ()
 													)
 										  else
 											xdmp:log(concat("[ CarouselVideoReading ][ ERROR ][ Type value must be match to 'MostPopularVideo|LatestVideo|VideoId][ Currently it is :", $VideoFile/Type/text(), ' ]'))
-	return
+											return
 	  (: This validation is finally to check that whenever we are committing carousel XML in ML it must contain all the video ID to set :)
 	  if( checkVideoIDPresent($UpdatedCarouselVideoWithID) = "SUCCESS" )
 	  then $UpdatedCarouselVideoWithID
