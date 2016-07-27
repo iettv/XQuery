@@ -45,27 +45,20 @@ let $SubscriptionType        := $ActivityXML//Action/AdditionalInfo/NameValue[ma
 
 let $GetMasterXML := local:GetXMLFile($Video_ID)
 
-let $FetchTitle := $GetMasterXML//BasicInfo/Title/string()
-let $FetchDuration := $GetMasterXML//UploadVideo/File/Duration/string()
-let $FetchSubscriptionType := $GetMasterXML//PricingDetails/@type/string()
+let $FetchTitle := ($GetMasterXML//BasicInfo/Title/string())[1]
+let $FetchDuration := ($GetMasterXML//UploadVideo/File/Duration/string())[1]
+let $FetchSubscriptionType := ($GetMasterXML//PricingDetails/@type/string())[1]
 
-let $EmbedTitle := mem:node-replace($ActivityXML//Action/AdditionalInfo/NameValue[matches(Name,'VideoTitle')]/Value, <Value>{$FetchTitle}</Value>)
-
-let $UpdatedXML1   := if ($ActivityXML//Action/AdditionalInfo/NameValue[matches(Name,'VideoTitle')]/Value[.=''])
-                     then ($EmbedTitle)
+let $UpdatedXML1   := if (($ActivityXML//Action/AdditionalInfo/NameValue[matches(Name,'VideoTitle')]/Value[.=''])[1])
+                     then (mem:node-replace(($ActivityXML//Action/AdditionalInfo/NameValue[matches(Name,'VideoTitle')]/Value)[1], <Value>{$FetchTitle}</Value>))
                      else ($ActivityXML)
 
-let $EmbedDuration := mem:node-replace($UpdatedXML1//Action/AdditionalInfo/NameValue[matches(Name,'Duration')]/Value, <Value>{$FetchDuration}</Value>)
-
-let $UpdatedXML2   := if ($UpdatedXML1//Action/AdditionalInfo/NameValue[matches(Name,'Duration')]/Value[.=''])
-                     then ($EmbedDuration)
+  let $UpdatedXML2   := if (($UpdatedXML1//Action/AdditionalInfo/NameValue[matches(Name,'Duration')]/Value[.=''])[1])
+                     then (mem:node-replace(($ActivityXML//Action/AdditionalInfo/NameValue[matches(Name,'Duration')]/Value)[1], <Value>{$FetchDuration}</Value>))
                      else ($UpdatedXML1)
 
-
-let $EmbedSubscriptionType := mem:node-replace($UpdatedXML2//Action/AdditionalInfo/NameValue[matches(Name,'SubscriptionType')]/Value, <Value>{$FetchSubscriptionType}</Value>)
-
-let $UpdatedXML3   := if ($UpdatedXML2//Action/AdditionalInfo/NameValue[matches(Name,'SubscriptionType')]/Value[.=''])
-                     then ($EmbedSubscriptionType)
+let $UpdatedXML3   := if (($UpdatedXML2//Action/AdditionalInfo/NameValue[matches(Name,'SubscriptionType')]/Value[.=''])[1])
+                     then (mem:node-replace(($UpdatedXML2//Action/AdditionalInfo/NameValue[matches(Name,'SubscriptionType')]/Value)[1], <Value>{$FetchSubscriptionType}</Value>))
                      else ($UpdatedXML2)
 
 return 
