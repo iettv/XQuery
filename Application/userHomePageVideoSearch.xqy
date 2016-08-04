@@ -23,7 +23,10 @@ declare variable $inputSearchDetails as xs:string external;
 let $Log 			:= xdmp:log("[ IET-TV ][ VideoSearch ][ Call ][ Service call ]")
 let $InputParam  	:= xdmp:unquote($inputSearchDetails)
 let $TermToSearch 	:= $InputParam/SearchUserVideo/TermToSearch/text()
-let $TextToSearch 	:= $InputParam/SearchUserVideo/TextToSearch/text()
+let $Cpdlogo 	     := $InputParam//AllCPD/text()
+let $TextToSearch 	:= if($InputParam//AllCPD/text()="yes")
+                       then ("")
+                       else ($InputParam//TextToSearch/text())
 let $PageLength 	:= xs:integer($InputParam/SearchUserVideo/PageLength/text())
 let $StartPage 		:= xs:integer($InputParam/SearchUserVideo/StartPage/text())
 let $Sorting 		:= $InputParam/SearchUserVideo/SortBy/text()
@@ -45,7 +48,7 @@ return
       "ERROR! Please provide correct input parameter to search. Currently it is empty."
     )
   else
-  if( not($TextToSearch) )
+  if( not($TextToSearch) and not($Cpdlogo) )
   then
     (
       xdmp:log(concat("[ IET-TV ][ VideoSearch ][ Info ][ Invalid valued provided to TextToSearch - TextToSearch : ", $TextToSearch, " ]"))
