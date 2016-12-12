@@ -83,7 +83,7 @@ declare function getChannelPopularByCount($PopularCount as xs:integer,$ChannelID
 
 declare function getChannelMostPopularByCount($ChannelID, $PopularCount as xs:integer)
 {
-	let $MostPopularXml := 	CHANNEL:GetChannelMostPopularFile($ChannelID)
+	let $MostPopularXml := 	GetChannelMostPopularFile($ChannelID)
 	let $TotalPopularCount:= count($MostPopularXml//Video)
 	return
 		if($TotalPopularCount eq xs:integer(0))
@@ -435,22 +435,46 @@ declare function GenerateChannelPopularListAndGetPopularIdByCount($popularCount 
 		if( xs:integer($popularCount) != number(0) )
 		then
 			let $MostPopularList	:=  xdmp:eval(	" 	xquery version '1.0-ml';
+															import module namespace search     = 'http://marklogic.com/appservices/search' at '/MarkLogic/appservices/search/search.xqy';
 															import module namespace constants  = 'http://www.TheIET.org/constants'    at  '/Utils/constants.xqy';
 															declare variable $CurrentDBName as xs:string external;
 															declare variable $ChannelID external;															
 															<ChannelMostPopular>
 																{
-																	let $ChannelCollection := fn:concat('Channel-',$ChannelID)
-																	for $EachVideoID in cts:collections()[not(fn:starts-with(., 'Channel-')) and
-																										 not(fn:starts-with(., 'IET-TV')) and
-																										 not(fn:starts-with(., 'WebPortal')) and
-																										 not(fn:starts-with(., 'Admin'))
-																										]
-																	let $VideoResult := collection($ChannelCollection)/Activity[EntityID=$EachVideoID][Action[Type='Play']]/EntityID
-																	let $Count := count($VideoResult)
-																	order by $Count descending
-																	return if($Count!=0) then <Video><VideoID>{$EachVideoID}</VideoID><Count>{$Count}</Count></Video> else ''
-																}
+																	let $SearchOption := <options xmlns='http://marklogic.com/appservices/search'>
+																							<term>
+																							  <term-option>case-insensitive</term-option>
+																							  <term-option>wildcarded</term-option>
+																							  <term-option>stemmed</term-option>
+																							  <term-option>diacritic-insensitive</term-option>
+																							  <term-option>punctuation-insensitive</term-option>
+																							</term>
+																							<constraint name='Action'>
+																							  <range type='xs:string' facet='true' collation='http://marklogic.com/collation/'>
+																								<element ns='' name='Type'/>
+																								<facet-option>frequency-order</facet-option>
+																								<facet-option>descending</facet-option>
+																							  </range>
+																							</constraint>
+																							<constraint name='VideoID'>
+																							  <range type='xs:string' facet='true' collation='http://marklogic.com/collation/'>
+																								<element ns='' name='EntityID'/>
+																								<facet-option>frequency-order</facet-option>
+																								<facet-option>descending</facet-option>
+																							  </range>
+																							</constraint>
+																							<constraint name='ChannelId'>
+																							  <range type='xs:string' facet='true' collation='http://marklogic.com/collation/'>
+																								<facet-option>frequency-order</facet-option>
+																								<facet-option>descending</facet-option>
+																							   <path-index>AdditionalInfo/NameValue[Name='ChannelId']/Value</path-index>
+																							  </range>
+																							</constraint>
+																					  </options>
+
+																	let $SearchResponse 	:=  search:search(fn:concat('ChannelId:',$ChannelID,' AND Action:Play'), $SearchOption, 1)
+																	for $EachVideo in $SearchResponse/search:facet[@name='VideoID']/search:facet-value
+																	return <Video><VideoID>{$EachVideo/text()}</VideoID><Count>{data($EachVideo/@count)}</Count></Video>																}
 															</ChannelMostPopular>
 														"
 														, 

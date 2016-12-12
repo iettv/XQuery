@@ -337,22 +337,19 @@ declare function GetVideoPopularByCount($popularCount as xs:integer)
 {
 	if( xs:integer($popularCount) != number(0) )
 	then
-		<CommonMostPopular>
-			{
-				let $PopularFile := GetCommonPopularFile()
-				for $Video in $PopularFile//Video[position() le $popularCount ]
-				let $IsVideoAvailable := doc-available(concat($constants:PCOPY_DIRECTORY ,$Video/VideoID/text(),'.xml'))
-				let $VideoUri := concat($constants:PCOPY_DIRECTORY ,$Video/VideoID/text(),'.xml')
-				let $VideoDoc := doc($VideoUri)
-				let $IsExcludeMostPopular := ExcludeMostPopular($VideoDoc)
-				return
-					if( $IsVideoAvailable eq fn:true() and $IsExcludeMostPopular eq fn:false() )
-					then
-					<VideoID>{$Video/VideoID/text()}</VideoID>
-					else ()
-
-			}
-		</CommonMostPopular>
+    let $PopularCount := <CommonMostPopular></CommonMostPopular>
+    let $UpdateID :=  for $VideoID in VIDEOS:GetCommonPopularFile()//Video/VideoID/text()
+                      let $DocUri := fn:concat($constants:PCOPY_DIRECTORY, $VideoID, ".xml")
+                      let $IsExcludeMostPopular := VIDEOS:ExcludeMostPopular(doc($DocUri))
+                      let $IsVideoAvailable := doc-available($DocUri)
+                      return
+                      if(fn:count($PopularCount/VideoID) lt $popularCount ) 
+                      then
+                        if($IsVideoAvailable eq fn:true() and $IsExcludeMostPopular eq fn:false())
+                        then xdmp:set($PopularCount,mem:node-insert-child($PopularCount,<VideoID IsVideoAvailable="{$IsVideoAvailable}" IsExcludeMostPopular="{$IsExcludeMostPopular}">{$VideoID}</VideoID>))
+                        else ()
+                      else ()
+        return $PopularCount
 	else
 		xdmp:log(concat("[ VideoPopular ][ Fail ][ Invalid popular-count ][ POPULAR-COUNT: ", $popularCount, " ]"))
 };
