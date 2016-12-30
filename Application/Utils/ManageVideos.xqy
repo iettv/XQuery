@@ -255,6 +255,8 @@ declare function GetVideoActionProperty($ActionUri,$UserID,$UserEmail,$UserIP)
 {
 	let $GetActionDoc := doc($ActionUri)
 	let $CurrentView := $GetActionDoc/VideoAction/Views/text()
+	let $LiveCurrentView := $GetActionDoc/VideoAction/LiveViews/text()
+	(: let $LiveCurrentView := $GetActionDoc/VideoAction/LiveViews/text() :)
 	let $CurrentLike := count($GetActionDoc/VideoAction/User/Action[.='Like'])
 	let $CurrentDisLike := count($GetActionDoc/VideoAction/User/Action[.='Dislike'])
 	(:let $Log := xdmp:log($GetActionDoc):)
@@ -264,7 +266,8 @@ declare function GetVideoActionProperty($ActionUri,$UserID,$UserEmail,$UserIP)
 		<User><Action>{$UserAction}</Action></User>,
 		<Likes>{$CurrentLike}</Likes>,
 		<DisLikes>{$CurrentDisLike}</DisLikes>,
-		<Views>{if($CurrentView) then $CurrentView else "0"}</Views>
+		<Views>{if($CurrentView) then $CurrentView else "0"}</Views>,
+		<LiveViews>{if($LiveCurrentView) then $LiveCurrentView else "0"}</LiveViews>
 	)
 };
 
@@ -337,22 +340,19 @@ declare function GetVideoPopularByCount($popularCount as xs:integer)
 {
 	if( xs:integer($popularCount) != number(0) )
 	then
-		<CommonMostPopular>
-			{
-				let $PopularFile := GetCommonPopularFile()
-				for $Video in $PopularFile//Video[position() le $popularCount ]
-				let $IsVideoAvailable := doc-available(concat($constants:PCOPY_DIRECTORY ,$Video/VideoID/text(),'.xml'))
-				let $VideoUri := concat($constants:PCOPY_DIRECTORY ,$Video/VideoID/text(),'.xml')
-				let $VideoDoc := doc($VideoUri)
-				let $IsExcludeMostPopular := ExcludeMostPopular($VideoDoc)
-				return
-					if( $IsVideoAvailable eq fn:true() and $IsExcludeMostPopular eq fn:false() )
-					then
-					<VideoID>{$Video/VideoID/text()}</VideoID>
-					else ()
-
-			}
-		</CommonMostPopular>
+    let $PopularCount := <CommonMostPopular></CommonMostPopular>
+    let $UpdateID :=  for $VideoID in VIDEOS:GetCommonPopularFile()//Video/VideoID/text()
+                      let $DocUri := fn:concat($constants:PCOPY_DIRECTORY, $VideoID, ".xml")
+                      let $IsExcludeMostPopular := VIDEOS:ExcludeMostPopular(doc($DocUri))
+                      let $IsVideoAvailable := doc-available($DocUri)
+                      return
+                      if(fn:count($PopularCount/VideoID) lt $popularCount ) 
+                      then
+                        if($IsVideoAvailable eq fn:true() and $IsExcludeMostPopular eq fn:false())
+                        then xdmp:set($PopularCount,mem:node-insert-child($PopularCount,<VideoID IsVideoAvailable="{$IsVideoAvailable}" IsExcludeMostPopular="{$IsExcludeMostPopular}">{$VideoID}</VideoID>))
+                        else ()
+                      else ()
+        return $PopularCount
 	else
 		xdmp:log(concat("[ VideoPopular ][ Fail ][ Invalid popular-count ][ POPULAR-COUNT: ", $popularCount, " ]"))
 };
@@ -935,7 +935,9 @@ declare function GetVideoByEvent($EventId as xs:string) as item()*
 			return
 			<Video ID="{fn:data($EachVideo/Video/@ID)}">
 				{
-				$EachVideo//BasicInfo/Title
+				$EachVideo//BasicInfo/Title,
+				$EachVideo/Video/VideoNumber,
+				<Pricingtype>{$EachVideo//BasicInfo/PricingDetails/@type/string()}</Pricingtype>
 				}
 			</Video>
 	else
@@ -1161,7 +1163,7 @@ declare function GetVideoBySpeaker($SpeakerId as xs:string) as item()*
 		"NONE"
 };
 
-declare function GetVideoDetailsByEvent($SkipChannel as item(),$EventID as xs:string,$StartDate as xs:dateTime,$EndDate as xs:dateTime)
+declare function GetVideoDetailsByEvent($SkipChannel as item(),$EventID as xs:string,$StartDate as xs:dateTime,$EndDate as xs:dateTime,$RoomId as xs:string)
 {
 	let $VideoXML := if( $SkipChannel//text() ne "NONE" )
 	                 then
@@ -1172,7 +1174,8 @@ declare function GetVideoDetailsByEvent($SkipChannel as item(),$EventID as xs:st
                                                                                       ,
                                               cts:and-query(( cts:element-attribute-value-query(xs:QName("Event"),xs:QName("ID"),$EventID),
                                                               cts:element-range-query(xs:QName("StartDate"),">=",$StartDate),
-                                                              cts:element-range-query(xs:QName("StartDate"),"<=",$EndDate)
+                                                              cts:element-range-query(xs:QName("StartDate"),"<=",$EndDate),
+															  cts:element-attribute-value-query(xs:QName("Room"),xs:QName("ID"),$RoomId)
                                                            ))
                                )
 				     else
@@ -1182,7 +1185,8 @@ declare function GetVideoDetailsByEvent($SkipChannel as item(),$EventID as xs:st
                                                                                       ,
                                               cts:and-query(( cts:element-attribute-value-query(xs:QName("Event"),xs:QName("ID"),$EventID),
                                                               cts:element-range-query(xs:QName("StartDate"),">=",$StartDate),
-                                                              cts:element-range-query(xs:QName("StartDate"),"<=",$EndDate)
+                                                              cts:element-range-query(xs:QName("StartDate"),"<=",$EndDate),
+															  cts:element-attribute-value-query(xs:QName("Room"),xs:QName("ID"),$RoomId)
                                                            ))
                                )
 
@@ -1452,7 +1456,7 @@ declare function GetVideoDetailsReport($TermToSearch as xs:string, $PageLength a
 										<path-index>ModifiedInfo/Date</path-index>
 									</range>
 								</constraint>
-								<additional-query>{cts:collection-query($constants:VIDEO_COLLECTION)}</additional-query>
+								<additional-query>{cts:collection-query($constants:PCOPY)}</additional-query>
 								<additional-query>
 								{
 									cts:and-query((
@@ -1506,6 +1510,7 @@ declare function GetVideoDetailsReport($TermToSearch as xs:string, $PageLength a
 						 $EachVideo/UploadVideo,
 						 $EachVideo/PublishInfo,
 						 $EachVideo/VideoStatus,
+						 $EachVideo/LiveViewCount,
 						 $EachVideo/KeyWordInfo/ChannelKeywordList,
 						 <NoOfComments>{$CommentCount}</NoOfComments>,
 						 <HideRecord>{fn:data($EachVideo/AdvanceInfo/PermissionDetails/Permission[@type="HideRecord"]/@status)}</HideRecord>

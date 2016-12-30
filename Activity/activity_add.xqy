@@ -25,6 +25,7 @@ declare function local:GetXMLFile($Video_ID as xs:string)
 
  let $ActivityXML  	:= xdmp:unquote($inputSearchDetails) 
 (:let $ActivityXML  	:= <Activity><ID>5ba5de4a-489e-4053-891e-418146c03230</ID><EntityID Type="VideoId">d1515fdb-925b-45a5-a6e8-c6101c99477d</EntityID><PlatformID>IET-TV</PlatformID><ActivityDate>2015-05-29</ActivityDate><ActivityTime>13:24:56</ActivityTime><Actor><ActorType>Unanonymous</ActorType><UserID>-1</UserID><UserName>Unknown Status</UserName><UserIP>192.168.2.110</UserIP><BrowserName>Chrome</BrowserName><BrowserVersion>43.0</BrowserVersion><Device>Desktop</Device><AccountType>Unknown Status</AccountType><CorporateAccountID>-1</CorporateAccountID><CorporateAccountName>Unknown Status</CorporateAccountName><UserType>Unknown Status</UserType></Actor><Action><Type>View</Type><SubType/><Details/><Description/><ActivityType>WebPortal</ActivityType><AdditionalInfo><NameValue><Name>VideoId</Name><Value>d1515fdb-925b-45a5-a6e8-c6101c99477d</Value></NameValue><NameValue><Name>VideoTitle</Name><Value>VideoTitle</Value></NameValue><NameValue><Name>ChannelId</Name><Value>0</Value></NameValue><NameValue><Name>ChannelName</Name><Value/></NameValue><NameValue><Name>SubscriptionType</Name><Value>SubscriptionType</Value></NameValue><NameValue><Name>Duration</Name><Value>Duration</Value></NameValue></AdditionalInfo></Action></Activity>:)
+let $Log 			:= xdmp:log(concat("[ IET-TV ][ ActivityIngestion ][ Activity Logging Started ]"))
 let $ActivityDate 	:= xs:date($ActivityXML/Activity/ActivityDate/string())
 let $CurrentYear 	:= fn:year-from-date($ActivityDate)
 let $CurrentMonth 	:= functx:month-name-en($ActivityDate)
@@ -72,6 +73,7 @@ return
   catch($e)
     {(
         xdmp:log(concat("[ IET-TV ][ ActivityIngestion ][ ERROR ][ ",$ActivityID, " ]")),
-        "ERROR"
+        "ERROR",
+        xdmp:log(concat("[ IET-TV ][ ActivityIngestion ][ ERROR ][ Activity Failed XML : ",$UpdatedXML3, " ]"))
     )}
     

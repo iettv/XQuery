@@ -17,5 +17,11 @@ let $count_account := count(/Activity/Actor[CorporateAccountID/text()=$AccountID
 return 
 
 if ($count_account ge 1)
-then ("Success")
-else ("Failure")
+then (
+       xdmp:log(concat("[ IET-TV ][ Activity Count By Account ID ][ Info ][ Successful ]")),
+       "Success"
+     )
+else (
+       xdmp:log(concat("[ IET-TV ][ Activity Count By Account ID ][ Info ][ Failed ]")),
+       "Failure"
+     )

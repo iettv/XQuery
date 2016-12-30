@@ -12,13 +12,13 @@ declare function local:RangeDateData($DateType as xs:string,$StartDate as xs:dat
 
 (:let $inputSearchDetails := "<Activity>
 	<FromDate>2015-01-18</FromDate>
-	<ToDate>2015-09-18</ToDate>
+	<ToDate>2016-09-18</ToDate>
   <Value>Single</Value>
 	<AccountTypes>
 		<AccountType>Individual</AccountType>
 	</AccountTypes>
 </Activity>
-":)
+" :)
 
 
  (:let $inputSearchDetails := "<Activity>
@@ -48,9 +48,18 @@ declare function local:RangeDateData($DateType as xs:string,$StartDate as xs:dat
 	</AccountTypes>
 </Activity>" :)
 
-
+let $inputSearchDetails := "<Activity>
+                            <FromDate>2016-01-22</FromDate>
+                            <ToDate>2016-08-22</ToDate>
+                            <Value></Value>
+                            <AccountTypes>
+                              <AccountType1>Corporate</AccountType1>
+                              <AccountType2>Institution</AccountType2>
+                              <AccountType3>Individual</AccountType3>
+                              <AccountType4>Unknown Status</AccountType4>
+                            </AccountTypes>
+                          </Activity>"
 let $input := xdmp:unquote($inputSearchDetails)
-
 let $AccountType := $input/Activity/AccountTypes/AccountType/text()
 let $AccountType1 := $input/Activity/AccountTypes/AccountType1/text()
 let $AccountType2 := $input/Activity/AccountTypes/AccountType2/text()
@@ -60,18 +69,31 @@ let $CorporateAccountIDs := $input/Activity/CorporateAccountIDs/CorporateAccount
 let $Value := $input/Activity/Value/text()
 let $StartDate := xs:date($input/Activity/FromDate/text())
 let $EndDate := xs:date($input/Activity/ToDate/text())
-let $ResultData :=  if ($Value='Single')
-                    then (cts:search(doc()[/Activity[Action/Type/text()='View' or Action/Type/text()='Play' or Action/Type/text()='Download']/Actor[AccountType/text()=$AccountType]],local:RangeDateData("ActivityDate",$StartDate,$EndDate)))
+
+return 
+        if(not($Value))
+          then
+            (
+              xdmp:log(concat("[ IET-TV ][ Activity Report India ][ Info ][ Valid Element Is Empty ]"))
+              ,
+              "ERROR! Please provide content in Value element. Currently it is empty."
+            )
+        else
+            let $ResultData :=  (
+                    (xdmp:log("[ IET-TV ][ Activity Report India ][ Report Creation Started ]")),
+                    (if ($Value='Single')
+                    then (cts:search(doc()[/Activity[((Action/Type/text()='View' or Action/Type/text()='Play' or Action/Type/text()='Download') and (Actor[AccountType/text()=$AccountType]))]],local:RangeDateData("ActivityDate",$StartDate,$EndDate)))
                     else if ($Value='Double')
-                    then (cts:search(doc()[/Activity[Action/Type/text()='View' or Action/Type/text()='Play' or Action/Type/text()='Download']/Actor[AccountType/text()=$AccountType and CorporateAccountID/text()=$CorporateAccountIDs]],local:RangeDateData("ActivityDate",$StartDate,$EndDate)))
+                    then (cts:search(doc()[/Activity[((Action/Type/text()='View' or Action/Type/text()='Play' or Action/Type/text()='Download') and (Actor[AccountType/text()=$AccountType and CorporateAccountID/text()=$CorporateAccountIDs]))]],local:RangeDateData("ActivityDate",$StartDate,$EndDate)))
                     else if ($Value='All')
-                    then (cts:search(doc()[/Activity[Action/Type/text()='View' or Action/Type/text()='Play' or Action/Type/text()='Download']/Actor[AccountType/text()=$AccountType1 or AccountType/text()=$AccountType2 or
-                    AccountType/text()=$AccountType3 or AccountType/text()=$AccountType4]],local:RangeDateData("ActivityDate",$StartDate,$EndDate)))
-                    else ()
+                    then (cts:search(doc()[/Activity[((Action/Type/text()='View' or Action/Type/text()='Play' or Action/Type/text()='Download') and (Actor[AccountType/text()=$AccountType1 or AccountType/text()=$AccountType2 or
+                    AccountType/text()=$AccountType3 or AccountType/text()=$AccountType4]))]],local:RangeDateData("ActivityDate",$StartDate,$EndDate)))
+                    else ())
+                    )
 
-let $AllFiles := <root>{$ResultData}</root>
+            let $AllFiles := <root>{$ResultData}</root>
 
-let $Records :=
+            let $Records :=
                   <root>
                   {
                   for $Activity in $AllFiles/Activity
@@ -80,6 +102,8 @@ let $Records :=
                   let $Action := $Activity/Action/Type/text()
                   let $AccountID := $Activity/Actor/CorporateAccountID/text()
                   let $UserIP := $Activity/Actor/UserIP/text()
+                  let $UserID := $Activity/Actor/UserID/text()
+                  let $UserName := $Activity/Actor/UserName/text()
                   let $Video_Title := $Activity/Action/AdditionalInfo/NameValue[Name/text()='VideoTitle']/Value/text()
                   let $Video_Type := $Activity/Action/AdditionalInfo/NameValue[Name/text()='VideoType']/Value/text()
                   let $Subscription_Type := $Activity/Action/AdditionalInfo/NameValue[Name/text()='SubscriptionType']/Value/text()
@@ -90,6 +114,8 @@ let $Records :=
                       <EntityID>{$EntityID}</EntityID>
                       <Action>{$Action}</Action>
                       <UserIP>{$UserIP}</UserIP>
+                      <UserID>{$UserID}</UserID>
+                      <UserName>{$UserName}</UserName>
                       <AccountID>{$AccountID}</AccountID>
                       <VideoTitle>{$Video_Title}</VideoTitle>
                       <VideoType>{$Video_Type}</VideoType>
@@ -99,7 +125,7 @@ let $Records :=
                   }
                   </root>
 
-let $StructuredXml := 
+            let $StructuredXml := 
                         <root>
                         {
                                for $record in $Records/record
@@ -110,6 +136,8 @@ let $StructuredXml :=
                                        let $DownloadCount := count($Records//record/EntityID[text()=$Entity_ID and following-sibling::Action[text()='Download']])
                                        let $Action := $record/Action/text()
                                        let $UserIP := $record/UserIP/text()
+                                       let $UserID := $record/UserID/text()
+                                       let $UserName := $record/UserName/text()
                                        let $AccountID := $record/AccountID/text()
                                        let $VideoTitle := $record/VideoTitle/text()
                                        let $VideoType := $record/VideoType/text()
@@ -122,6 +150,8 @@ let $StructuredXml :=
                             <PlayCount>{$PlayCount}</PlayCount>
                             <DownloadCount>{$DownloadCount}</DownloadCount>
                             <UserIP>{$UserIP}</UserIP>
+                            <UserID>{$UserID}</UserID>
+                            <UserName>{$UserName}</UserName>
                             <Action>{$Action}</Action>
                             <AccountID>{$AccountID}</AccountID>
                             <VideoTitle>{$VideoTitle}</VideoTitle>
@@ -132,7 +162,7 @@ let $StructuredXml :=
                         }
                         </root>
 
-let $GroupingXml := 
+               let $GroupingXml := 
                     <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                         xmlns:xs="http://www.w3.org/2001/XMLSchema" exclude-result-prefixes="xs fn"
                         xmlns:fn="http://www.w3.org/2005/xpath-functions" version="2.0">
@@ -157,6 +187,8 @@ let $GroupingXml :=
                                                         <xsl:copy-of select="../VideoType"/>
                                                         <xsl:copy-of select="../SubscriptionType"/>
                                                         <xsl:copy-of select="../UserIP"/>
+                                                        <xsl:copy-of select="../UserID"/>
+                                                        <xsl:copy-of select="../UserName"/>
                                                         <xsl:copy-of select="../ViewCount"/>
                                                         <xsl:copy-of select="../PlayCount"/>
                                                         <xsl:copy-of select="../DownloadCount"/>
@@ -169,11 +201,11 @@ let $GroupingXml :=
                     
                     </xsl:stylesheet>
 
-let $GroupStructuredXml :=  xdmp:xslt-eval($GroupingXml,$StructuredXml)
+            let $GroupStructuredXml :=  xdmp:xslt-eval($GroupingXml,$StructuredXml)
 
-let $GroupStructuredXsl := 
+            let $GroupStructuredXsl := 
                         <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-                            xmlns:xs="http://www.w3.org/2001/XMLSchema" exclude-result-prefixes="xs"
+                            xmlns:xs="http://www.w3.org/2001/XMLSchema" exclude-result-prefixes="xs fn"
                             xmlns:fn="http://www.w3.org/2005/xpath-functions" version="2.0">
                             
                             <xsl:output method="xml" indent="yes"/>
@@ -201,6 +233,9 @@ let $GroupStructuredXsl :=
                             
                         </xsl:stylesheet>
                         
-let $ActivityDateSorted := xdmp:xslt-eval($GroupStructuredXsl,$GroupStructuredXml) 
-
-return $ActivityDateSorted
+            let $ActivityIndiaReport := xdmp:xslt-eval($GroupStructuredXsl,$GroupStructuredXml) 
+            return
+                    (
+                      ($ActivityIndiaReport),
+                      (xdmp:log("[ IET-TV ][ Activity Report India ][ Report Creation End ][ Successfully Result Sent ]"))
+                     )
