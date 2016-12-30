@@ -1163,7 +1163,7 @@ declare function GetVideoBySpeaker($SpeakerId as xs:string) as item()*
 		"NONE"
 };
 
-declare function GetVideoDetailsByEvent($SkipChannel as item(),$EventID as xs:string,$StartDate as xs:dateTime,$EndDate as xs:dateTime,$RoomId as xs:string)
+declare function GetVideoDetailsByEvent($SkipChannel as item(),$EventID as xs:string,$StartDate as xs:dateTime,$EndDate as xs:dateTime)
 {
 	let $VideoXML := if( $SkipChannel//text() ne "NONE" )
 	                 then
@@ -1174,8 +1174,7 @@ declare function GetVideoDetailsByEvent($SkipChannel as item(),$EventID as xs:st
                                                                                       ,
                                               cts:and-query(( cts:element-attribute-value-query(xs:QName("Event"),xs:QName("ID"),$EventID),
                                                               cts:element-range-query(xs:QName("StartDate"),">=",$StartDate),
-                                                              cts:element-range-query(xs:QName("StartDate"),"<=",$EndDate),
-															  cts:element-attribute-value-query(xs:QName("Room"),xs:QName("ID"),$RoomId)
+                                                              cts:element-range-query(xs:QName("StartDate"),"<=",$EndDate)
                                                            ))
                                )
 				     else
@@ -1185,8 +1184,7 @@ declare function GetVideoDetailsByEvent($SkipChannel as item(),$EventID as xs:st
                                                                                       ,
                                               cts:and-query(( cts:element-attribute-value-query(xs:QName("Event"),xs:QName("ID"),$EventID),
                                                               cts:element-range-query(xs:QName("StartDate"),">=",$StartDate),
-                                                              cts:element-range-query(xs:QName("StartDate"),"<=",$EndDate),
-															  cts:element-attribute-value-query(xs:QName("Room"),xs:QName("ID"),$RoomId)
+                                                              cts:element-range-query(xs:QName("StartDate"),"<=",$EndDate)
                                                            ))
                                )
 
