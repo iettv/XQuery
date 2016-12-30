@@ -255,8 +255,6 @@ declare function GetVideoActionProperty($ActionUri,$UserID,$UserEmail,$UserIP)
 {
 	let $GetActionDoc := doc($ActionUri)
 	let $CurrentView := $GetActionDoc/VideoAction/Views/text()
-	let $LiveCurrentView := $GetActionDoc/VideoAction/LiveViews/text()
-	(: let $LiveCurrentView := $GetActionDoc/VideoAction/LiveViews/text() :)
 	let $CurrentLike := count($GetActionDoc/VideoAction/User/Action[.='Like'])
 	let $CurrentDisLike := count($GetActionDoc/VideoAction/User/Action[.='Dislike'])
 	(:let $Log := xdmp:log($GetActionDoc):)
@@ -266,8 +264,7 @@ declare function GetVideoActionProperty($ActionUri,$UserID,$UserEmail,$UserIP)
 		<User><Action>{$UserAction}</Action></User>,
 		<Likes>{$CurrentLike}</Likes>,
 		<DisLikes>{$CurrentDisLike}</DisLikes>,
-		<Views>{if($CurrentView) then $CurrentView else "0"}</Views>,
-		<LiveViews>{if($LiveCurrentView) then $LiveCurrentView else "0"}</LiveViews>
+		<Views>{if($CurrentView) then $CurrentView else "0"}</Views>
 	)
 };
 
@@ -1508,7 +1505,6 @@ declare function GetVideoDetailsReport($TermToSearch as xs:string, $PageLength a
 						 $EachVideo/UploadVideo,
 						 $EachVideo/PublishInfo,
 						 $EachVideo/VideoStatus,
-						 $EachVideo/LiveViewCount,
 						 $EachVideo/KeyWordInfo/ChannelKeywordList,
 						 <NoOfComments>{$CommentCount}</NoOfComments>,
 						 <HideRecord>{fn:data($EachVideo/AdvanceInfo/PermissionDetails/Permission[@type="HideRecord"]/@status)}</HideRecord>

@@ -48,7 +48,7 @@ declare function local:RangeDateData($DateType as xs:string,$StartDate as xs:dat
 	</AccountTypes>
 </Activity>" :)
 
-let $inputSearchDetails := "<Activity>
+(:let $inputSearchDetails := "<Activity>
                             <FromDate>2016-01-22</FromDate>
                             <ToDate>2016-08-22</ToDate>
                             <Value></Value>
@@ -58,7 +58,7 @@ let $inputSearchDetails := "<Activity>
                               <AccountType3>Individual</AccountType3>
                               <AccountType4>Unknown Status</AccountType4>
                             </AccountTypes>
-                          </Activity>"
+                          </Activity>":)
 let $input := xdmp:unquote($inputSearchDetails)
 let $AccountType := $input/Activity/AccountTypes/AccountType/text()
 let $AccountType1 := $input/Activity/AccountTypes/AccountType1/text()
