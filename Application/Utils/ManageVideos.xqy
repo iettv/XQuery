@@ -12,6 +12,114 @@ import module namespace mem       = "http://xqdev.com/in-mem-update"     at  "/M
    Program will go from current date and check RecordStartDate if it is previous date, fatch out the result.
 :)
 
+declare function VIDEOS:AddSubtitleTranscript($VideoChunk as item())
+{
+  
+  let $VideoID      := $VideoChunk/Video/GUID
+  let $Subtitle     := $VideoChunk/Video/Subtitle
+  let $Transcript   := $VideoChunk/Video/Transcript
+  let $VideoXmlPC 	:= doc(fn:concat($constants:PCOPY_DIRECTORY,$VideoID,'.xml'))/Video
+  let $VideoXmlDR 	:= doc(fn:concat($constants:VIDEO_DIRECTORY,$VideoID,'.xml'))/Video
+  let $SubtitleActivePC    := $VideoXmlPC/AdvanceInfo/Subtitles/Subtitle/@active
+  let $SubtitleActiveDR    := $VideoXmlDR/AdvanceInfo/Subtitles/Subtitle/@active
+  let $TranscriptActivePC    := $VideoXmlPC/AdvanceInfo/Transcripts/Transcript/@active
+  let $TranscriptActiveDR    := $VideoXmlDR/AdvanceInfo/Transcripts/Transcript/@active
+  let $newActive    := attribute active {'no'}
+ 
+  return
+             if($VideoChunk/Video/Subtitle)
+             then
+                      (
+                        (
+                          if ($VideoXmlPC/AdvanceInfo/Subtitles/Subtitle[@active='yes'])
+                          then 
+                                    ( 
+                                      (xdmp:node-replace($SubtitleActivePC, $newActive)),
+                                      (xdmp:node-insert-child($VideoXmlPC/AdvanceInfo/Subtitles,$Subtitle)),
+                                      xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Added Subtitle (Draft) ] VideoId: ",$VideoID)),
+									  "Success"
+                                    )
+                          else if (($VideoXmlPC/AdvanceInfo/Subtitles/Subtitle[@active='no']) or not($VideoXmlPC/AdvanceInfo/Subtitles/Subtitle))
+                          then (xdmp:node-insert-child($VideoXmlPC/AdvanceInfo/Subtitles,$Subtitle),"Success")
+                           else (xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Video XML Not Available (PCopy) ] VideoId: ",$VideoID)), "Failed")
+                         )
+                            ,
+                          (
+                              if ($VideoXmlDR/AdvanceInfo/Subtitles/Subtitle[@active='yes'])
+                              then 
+                                    ( 
+                                      (xdmp:node-replace($SubtitleActiveDR, $newActive)),
+                                      (xdmp:node-insert-child($VideoXmlDR/AdvanceInfo/Subtitles,$Subtitle)),
+                                      xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Added Subtitle (Draft) ] VideoId: ",$VideoID)),
+									  "Success"
+                                    )
+                              else if (($VideoXmlDR/AdvanceInfo/Subtitles/Subtitle[@active='no']) or not($VideoXmlDR/AdvanceInfo/Subtitles/Subtitle))
+                              then (xdmp:node-insert-child($VideoXmlDR/AdvanceInfo/Subtitles,$Subtitle),"Success")
+                              else (xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Video XML Not Available (Draft) ] VideoId: ",$VideoID)), "Failed")
+                          )
+                      )
+                      
+             else if($VideoChunk/Video/Transcript)
+             then
+                      (
+                        (
+                          if ($VideoXmlPC/AdvanceInfo/Transcripts/Transcript[@active='yes'])
+                          then 
+                                ( 
+                                  (xdmp:node-replace($TranscriptActivePC, $newActive)),
+                                  (xdmp:node-insert-child($VideoXmlPC/AdvanceInfo/Transcripts,$Transcript)),
+                                  (xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Added Transcript (PCopy) ] VideoId: ",$VideoID)),
+								  "Success")
+                                )
+                          else if (($VideoXmlPC/AdvanceInfo/Transcripts/Transcript[@active='no']) or not($VideoXmlPC/AdvanceInfo/Transcripts/Transcript))
+                          then (xdmp:node-insert-child($VideoXmlPC/AdvanceInfo/Transcripts,$Transcript),"Success")
+                          else (xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Video XML Not Available (PCopy) ] VideoId: ",$VideoID)), "Failed")
+                           
+                         )
+                            ,
+                          (
+                            if ($VideoXmlDR/AdvanceInfo/Transcripts/Transcript[@active='yes'])
+                            then 
+                                ( 
+                                  (xdmp:node-replace($TranscriptActiveDR, $newActive)),
+                                  (xdmp:node-insert-child($VideoXmlDR/AdvanceInfo/Transcripts,$Transcript)),
+                                  (xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Added Transcript (PCopy) ] VideoId: ",$VideoID)),
+								  "Success")
+                                )
+                            else if (($VideoXmlDR/AdvanceInfo/Transcripts/Transcript[@active='no']) or not($VideoXmlDR/AdvanceInfo/Transcripts/Transcript))
+                            then (xdmp:node-insert-child($VideoXmlDR/AdvanceInfo/Transcripts,$Transcript),"Success")
+                            else (xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Video XML Not Available (Draft) ] VideoId: ",$VideoID)), "Failed")
+                          )
+                      )
+             else (xdmp:log(concat("Please Provide Subtitle Or Transcript Element In Input Video XML -- VideoId: ",$VideoID)), "Failed")
+};
+
+declare function GetGuIdEntryId($VideoID as xs:string)
+{
+  let $VideoXml 	:= collection($constants:PCOPY)/Video[VideoNumber=$VideoID]
+  let $VideoNumber 	:= $VideoXml/VideoNumber/text()
+  let $StreamId 	:= $VideoXml/UploadVideo/File/@streamID/string()
+  let $VideoTitle   := $VideoXml/BasicInfo/Title/text()
+  
+  return
+  if( $VideoXml )
+      then
+        ( (<Video>
+          <VideoId>{$VideoNumber}</VideoId>
+          <GUID>{fn:data($VideoXml/@ID)}</GUID>
+          <EntryID>{$StreamId}</EntryID>
+		  <Title>{$VideoTitle}</Title>
+        </Video>)
+        ,
+        (xdmp:log(concat("[ IET-TV ][ GetGUIdEntryId ][ INFO ][ Sent GUID and EntryId ] VideoId: ",$VideoID)))
+        )
+      else
+        (
+        
+        (xdmp:log(concat("[ IET-TV ][ GetGUIdEntryId ][ INFO ][ FAILED ] VideoId: ",$VideoID)))
+        )
+};
+
 declare function GetVideoIdByVideoNumber($VideoNumber as xs:string)
 {
   data(collection($constants:PCOPY)/Video[VideoNumber=$VideoNumber]/@ID)
@@ -255,6 +363,8 @@ declare function GetVideoActionProperty($ActionUri,$UserID,$UserEmail,$UserIP)
 {
 	let $GetActionDoc := doc($ActionUri)
 	let $CurrentView := $GetActionDoc/VideoAction/Views/text()
+	let $LiveCurrentView := $GetActionDoc/VideoAction/LiveViews/text()
+	(: let $LiveCurrentView := $GetActionDoc/VideoAction/LiveViews/text() :)
 	let $CurrentLike := count($GetActionDoc/VideoAction/User/Action[.='Like'])
 	let $CurrentDisLike := count($GetActionDoc/VideoAction/User/Action[.='Dislike'])
 	(:let $Log := xdmp:log($GetActionDoc):)
@@ -264,7 +374,8 @@ declare function GetVideoActionProperty($ActionUri,$UserID,$UserEmail,$UserIP)
 		<User><Action>{$UserAction}</Action></User>,
 		<Likes>{$CurrentLike}</Likes>,
 		<DisLikes>{$CurrentDisLike}</DisLikes>,
-		<Views>{if($CurrentView) then $CurrentView else "0"}</Views>
+		<Views>{if($CurrentView) then $CurrentView else "0"}</Views>,
+		<LiveViews>{if($LiveCurrentView) then $LiveCurrentView else "0"}</LiveViews>
 	)
 };
 
@@ -1160,7 +1271,7 @@ declare function GetVideoBySpeaker($SpeakerId as xs:string) as item()*
 		"NONE"
 };
 
-declare function GetVideoDetailsByEvent($SkipChannel as item(),$EventID as xs:string,$StartDate as xs:dateTime,$EndDate as xs:dateTime)
+declare function GetVideoDetailsByEvent($SkipChannel as item(),$EventID as xs:string,$StartDate as xs:dateTime,$EndDate as xs:dateTime,$RoomId as xs:string)
 {
 	let $VideoXML := if( $SkipChannel//text() ne "NONE" )
 	                 then
@@ -1171,7 +1282,8 @@ declare function GetVideoDetailsByEvent($SkipChannel as item(),$EventID as xs:st
                                                                                       ,
                                               cts:and-query(( cts:element-attribute-value-query(xs:QName("Event"),xs:QName("ID"),$EventID),
                                                               cts:element-range-query(xs:QName("StartDate"),">=",$StartDate),
-                                                              cts:element-range-query(xs:QName("StartDate"),"<=",$EndDate)
+                                                              cts:element-range-query(xs:QName("StartDate"),"<=",$EndDate),
+															  cts:element-attribute-value-query(xs:QName("Room"),xs:QName("ID"),$RoomId)
                                                            ))
                                )
 				     else
@@ -1181,7 +1293,8 @@ declare function GetVideoDetailsByEvent($SkipChannel as item(),$EventID as xs:st
                                                                                       ,
                                               cts:and-query(( cts:element-attribute-value-query(xs:QName("Event"),xs:QName("ID"),$EventID),
                                                               cts:element-range-query(xs:QName("StartDate"),">=",$StartDate),
-                                                              cts:element-range-query(xs:QName("StartDate"),"<=",$EndDate)
+                                                              cts:element-range-query(xs:QName("StartDate"),"<=",$EndDate),
+															  cts:element-attribute-value-query(xs:QName("Room"),xs:QName("ID"),$RoomId)
                                                            ))
                                )
 
