@@ -67,6 +67,12 @@ let $VideoXML           := if($VideoCurrentStatus != "Draft")
 							   let $ViewCount := if(fn:doc-available($PHistoryUri)) then doc($PHistoryUri)/Video/ViewCount/text() else doc(concat($constants:ACTION_DIRECTORY, $VideoID, $constants:SUF_ACTION,'.xml'))/VideoAction/Views/text()
 							   return mem:node-insert-child($VideoXML/Video,  <ViewCount>{if($ViewCount) then $ViewCount else 0}</ViewCount>)
 						   else $VideoXML
+(: To Preserve already inserted Live <VideoCount> element :)
+let $VideoXML           := if($VideoCurrentStatus != "Draft")
+						   then
+							   let $LiveViewCount := if(fn:doc-available($PHistoryUri)) then doc($PHistoryUri)/Video/LiveViewCount/text() else doc(concat($constants:ACTION_DIRECTORY, $VideoID, $constants:SUF_ACTION,'.xml'))/VideoAction/LiveViews/text()
+							   return mem:node-insert-child($VideoXML/Video,  <LiveViewCount>{if($LiveViewCount) then $LiveViewCount else 0}</LiveViewCount>)
+						   else $VideoXML
 (: To Preserve already inserted LikeCount element :)
 let $VideoXML           := if($VideoCurrentStatus != "Draft")
 						   then

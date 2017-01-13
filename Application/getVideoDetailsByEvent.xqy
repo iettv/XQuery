@@ -6,7 +6,7 @@ import module namespace VIDEOS = "http://www.TheIET.org/ManageVideos"   at  "/Ut
 	:                 Private Channel, it must be excluded from the list. And front-end team will exclude this when call this function.
 	:                 If there is no Private/Staff-Channel, it must be <SkipChannel>NONE</SkipChannel>
 	:
-	: <Events><SkipChannel><ID>1</ID><ID>2</ID><ID>3</ID></SkipChannel><EventID>18</EventID><StartDate>2015-01-02T00:00:00.0000</StartDate><EndDate>2015-01-02T23:59:59.0000</EndDate></Events>
+	: <Events><SkipChannel><ID>1</ID><ID>2</ID><ID>3</ID></SkipChannel><EventID>18</EventID><StartDate>2015-01-02T00:00:00.0000</StartDate><EndDate>2015-01-02T23:59:59.0000</EndDate><RoomId>11340</RoomId></Events>
 :)
 
 declare variable $inputSearchDetails as xs:string external; 
@@ -17,6 +17,8 @@ let $EventID 	:= $InputXML/Events/EventID/text()
 let $StartDate 	:= $InputXML/Events/StartDate/text()
 let $EndDate 	:= $InputXML/Events/EndDate/text()
 let $SkipChannel  := $InputXML/Events/SkipChannel
+let $RoomId		:= $InputXML/Events/RoomId/text()
+
 return
 	if( not($SkipChannel//text()) )
 	then
@@ -45,8 +47,15 @@ return
 			"EndDate is empty",
 			xdmp:log("[ IET-TV ][ GetVideoDetailByEvent ][ INFO ][ Parameter of EndDate is empty ]")
 		)
+	else	
+	if(not($RoomId))
+	then
+		(
+			"RoomId is empty",
+			xdmp:log("[ IET-TV ][ GetVideoDetailByEvent ][ INFO ][ Parameter of RoomId is empty ]")
+		)
 	else
 		(
-			<EventDetails>{VIDEOS:GetVideoDetailsByEvent($SkipChannel,$EventID,$StartDate,$EndDate)}</EventDetails>,
+			<EventDetails>{VIDEOS:GetVideoDetailsByEvent($SkipChannel,$EventID,$StartDate,$EndDate,$RoomId)}</EventDetails>,
 			xdmp:log("[ IET-TV ][ GetVideoDetailByEvent ][ Success ][ Service result sent ]")
 		)

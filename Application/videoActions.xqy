@@ -43,15 +43,17 @@ return
   else
 	(: To check: is video exist on ML database :)
     let $VideoUri := concat($constants:PCOPY_DIRECTORY, $VideoID, ".xml")
+    let $CheckViews := doc(concat($constants:ACTION_DIRECTORY,$VideoID,$constants:SUF_ACTION,".xml"))
     return 
     if( not(doc-available($VideoUri)) )
     then
       "ERROR!!! This Video ID does not exist"
     else
 		let $ActionUri := concat($constants:ACTION_DIRECTORY,$VideoID,$constants:SUF_ACTION,".xml")
+		
 		let $IsActionDocAvailable := doc-available($ActionUri)
 		return
-			if( $Action = "View" and ($IsActionDocAvailable = fn:false()) )
+			if( $Action = "View" and (($IsActionDocAvailable = fn:false())) or (not($CheckViews/VideoAction/Views)) )
 			then
 				let $ActionXML := <VideoAction><VideoID>{$VideoID}</VideoID><Views>1</Views></VideoAction>
 					return
