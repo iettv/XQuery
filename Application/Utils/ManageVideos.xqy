@@ -66,7 +66,6 @@ declare function VIDEOS:AddSubtitleTranscript($VideoChunk as item())
                           if ($VideoXmlPC/AdvanceInfo/Transcripts/Transcript[@active='yes'])
                           then 
                                 ( 
-                                  (xdmp:node-replace($TranscriptActivePC, $newActive)),
                                   (xdmp:node-insert-child($VideoXmlPC/AdvanceInfo/Transcripts,$Transcript)),
                                   (xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Added Transcript (PCopy) ] VideoId: ",$VideoID)),
 								  "Success")
@@ -81,7 +80,6 @@ declare function VIDEOS:AddSubtitleTranscript($VideoChunk as item())
                             if ($VideoXmlDR/AdvanceInfo/Transcripts/Transcript[@active='yes'])
                             then 
                                 ( 
-                                  (xdmp:node-replace($TranscriptActiveDR, $newActive)),
                                   (xdmp:node-insert-child($VideoXmlDR/AdvanceInfo/Transcripts,$Transcript)),
                                   (xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Added Transcript (PCopy) ] VideoId: ",$VideoID)),
 								  "Success")
@@ -1045,7 +1043,16 @@ declare function GetVideoByEvent($EventId as xs:string) as item()*
 				{
 				$EachVideo//BasicInfo/Title,
 				$EachVideo/Video/VideoNumber,
-				<Pricingtype>{$EachVideo//BasicInfo/PricingDetails/@type/string()}</Pricingtype>
+				<Pricingtype>{$EachVideo//BasicInfo/PricingDetails/@type/string()}</Pricingtype>,
+				if ($EachVideo/Video/BasicInfo/PricingDetails[@type='Premium'])
+                then 
+                      (<MemberDiscount>{$EachVideo/Video/BasicInfo/PricingDetails/DiscountList/Discount[@level='Member']/text()}</MemberDiscount>,
+                      <ChannelDiscount>{$EachVideo/Video/BasicInfo/PricingDetails/DiscountList/Discount[@level='Channel']/text()}</ChannelDiscount>,
+                      <EventDiscount>{$EachVideo/Video/BasicInfo/PricingDetails/DiscountList/Discount[@level='Event']/text()}</EventDiscount>)
+                else 
+                      (<MemberDiscount>0</MemberDiscount>,
+                      <ChannelDiscount>0</ChannelDiscount>,
+                      <EventDiscount>0</EventDiscount>)
 				}
 			</Video>
 	else
