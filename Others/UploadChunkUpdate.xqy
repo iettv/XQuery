@@ -2,6 +2,7 @@ xquery version "1.0-ml";
 
 import module namespace constants = "http://www.TheIET.org/constants"   at "/Utils/constants.xqy";
 
+(: New and existing chunk update :)
 let $Videos := 
 <videos>
 <video ID="61974f4e-3647-4610-a607-39648ff0ce48">
