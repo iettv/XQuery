@@ -5,8 +5,21 @@ xquery version "1.0-ml";
 import module namespace constants  = "http://www.TheIET.org/constants"    at  "/Utils/constants.xqy";
 import module namespace VIDEOS     = "http://www.TheIET.org/ManageVideos" at  "/Utils/ManageVideos.xqy";
 
-
 declare function local:updateLikeCount($VideoID, $UpdatedLike)
+{
+	let $PHistoryUri := fn:concat($constants:PCOPY_DIRECTORY,$VideoID,".xml")
+	return
+	   if( fn:doc-available($PHistoryUri) )
+	   then
+		  let $LikeCount := doc($PHistoryUri)/Video/LikeCount
+		  return
+			if($LikeCount)
+			then xdmp:node-replace($LikeCount, <LikeCount>{$UpdatedLike}</LikeCount>)
+			else xdmp:node-insert-child(doc($PHistoryUri)/Video,  <LikeCount>{$UpdatedLike}</LikeCount>)
+	   else ()
+};
+
+(:declare function local:updateLikeCount($VideoID, $UpdatedLike)
 {
 	let $PHistoryUri := fn:concat($constants:PCOPY_DIRECTORY,$VideoID,".xml")
 	return
@@ -18,7 +31,7 @@ declare function local:updateLikeCount($VideoID, $UpdatedLike)
 			then xdmp:node-replace($LikeCount, <LikeCount>{$UpdatedLike}</LikeCount>)
 			else xdmp:node-insert-child($PHistoryUri/Video,  <LikeCount>{$UpdatedLike}</LikeCount>)
 	   else ()
-};
+};:)
 
 declare variable $inputSearchDetails as xs:string external;
 
@@ -53,7 +66,7 @@ return
 		
 		let $IsActionDocAvailable := doc-available($ActionUri)
 		return
-			if( $Action = "View" and (($IsActionDocAvailable = fn:false())) or (not($CheckViews/VideoAction/Views)) )
+			if( ($Action="View") and ((($IsActionDocAvailable = fn:false())) or (not($CheckViews/VideoAction/Views))) )
 			then
 				let $ActionXML := <VideoAction><VideoID>{$VideoID}</VideoID><Views>1</Views></VideoAction>
 					return
