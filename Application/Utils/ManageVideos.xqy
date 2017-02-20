@@ -12,6 +12,162 @@ import module namespace mem       = "http://xqdev.com/in-mem-update"     at  "/M
    Program will go from current date and check RecordStartDate if it is previous date, fatch out the result.
 :)
 
+
+declare function VIDEOS:RangeDateData($DateType as xs:string,$StartDate as xs:dateTime,$EndDate as xs:dateTime)
+{
+        let $DateRange :=  cts:and-query((
+                                    cts:element-range-query(xs:QName($DateType), ">=", xs:dateTime($StartDate)),
+                                    cts:element-range-query(xs:QName($DateType), "<=", xs:dateTime($EndDate))) )
+        return $DateRange									
+}; 
+
+declare function VIDEOS:RangeDateRecordProcessing($DateType as xs:string,$VideoType as xs:string,$StartDate as xs:dateTime,$EndDate as xs:dateTime)
+{
+	                if($DateType="VideoCreatedDate")
+                    then (
+                            cts:search(doc()[contains(base-uri(),concat('/',$VideoType,'/'))][//VideoCreatedDate[text()!='']],VIDEOS:RangeDateData("VideoCreatedDate",$StartDate,$EndDate))
+                          )
+                    else if($DateType="VideoUploadDate")
+                    then (
+                            cts:search(doc()[contains(base-uri(),concat('/',$VideoType,'/'))][//UploadVideo/File/UploadDate[text()!='']],VIDEOS:RangeDateData("UploadDate",$StartDate,$EndDate))
+                          )
+                    else if($DateType="FinalPublishDate")
+                    then (
+                            cts:search(doc()[contains(base-uri(),concat('/',$VideoType,'/'))][//PublishInfo/VideoPublish[@active='yes']],
+                            cts:or-query(( VIDEOS:RangeDateData("FinalStartDate",$StartDate,$EndDate),
+                            VIDEOS:RangeDateData("RecordStartDate",$StartDate,$EndDate)
+                            )))
+                         ) 
+                    else if($DateType="FinalPublishDate")
+                    then (
+                            cts:search(doc()[contains(base-uri(),concat('/',$VideoType,'/'))][//PublishInfo/LivePublish[@active='yes']],
+                            cts:or-query(( VIDEOS:RangeDateData("LiveFinalStartDate",$StartDate,$EndDate),
+                            VIDEOS:RangeDateData("LiveRecordStartDate",$StartDate,$EndDate)
+                            )))
+                         ) 
+                    else if($DateType="RecordCreatedDate")
+                    then (
+                            cts:search(doc()[contains(base-uri(),concat('/',$VideoType,'/'))][contains(//CreationInfo/Date,'T')],cts:or-query((
+                            cts:and-query((
+                                    cts:path-range-query("ModifiedInfo/Date", ">=", xs:dateTime($StartDate)),
+                                    cts:path-range-query("ModifiedInfo/Date", "<=", xs:dateTime($EndDate))) ),
+                            cts:and-query((
+                                    cts:path-range-query("CreationInfo/Date", ">=", xs:dateTime($StartDate)),
+                                    cts:path-range-query("CreationInfo/Date", "<=", xs:dateTime($EndDate))) )
+                            )))
+                         ) 
+                    else ()
+
+    						
+};
+
+
+declare function VIDEOS:AddSubtitleTranscript($VideoChunk as item())
+{
+  
+  let $VideoID      := $VideoChunk/Video/GUID
+  let $Subtitle     := $VideoChunk/Video/Subtitle
+  let $Transcript   := $VideoChunk/Video/Transcript
+  let $VideoXmlPC 	:= doc(fn:concat($constants:PCOPY_DIRECTORY,$VideoID,'.xml'))/Video
+  let $VideoXmlDR 	:= doc(fn:concat($constants:VIDEO_DIRECTORY,$VideoID,'.xml'))/Video
+  let $SubtitleActivePC    := $VideoXmlPC/AdvanceInfo/Subtitles/Subtitle/@active
+  let $SubtitleActiveDR    := $VideoXmlDR/AdvanceInfo/Subtitles/Subtitle/@active
+  let $TranscriptActivePC    := $VideoXmlPC/AdvanceInfo/Transcripts/Transcript/@active
+  let $TranscriptActiveDR    := $VideoXmlDR/AdvanceInfo/Transcripts/Transcript/@active
+  let $newActive    := attribute active {'no'}
+ 
+  return
+             if($VideoChunk/Video/Subtitle)
+             then
+                      (
+                        (
+                          if ($VideoXmlPC/AdvanceInfo/Subtitles/Subtitle[@active='yes'])
+                          then 
+                                    ( 
+                                      (xdmp:node-replace($SubtitleActivePC, $newActive)),
+                                      (xdmp:node-insert-child($VideoXmlPC/AdvanceInfo/Subtitles,$Subtitle)),
+                                      xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Added Subtitle (Draft) ] VideoId: ",$VideoID)),
+									  "Success"
+                                    )
+                          else if (($VideoXmlPC/AdvanceInfo/Subtitles/Subtitle[@active='no']) or not($VideoXmlPC/AdvanceInfo/Subtitles/Subtitle))
+                          then (xdmp:node-insert-child($VideoXmlPC/AdvanceInfo/Subtitles,$Subtitle),"Success")
+                           else (xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Video XML Not Available (PCopy) ] VideoId: ",$VideoID)), "Failed")
+                         )
+                            ,
+                          (
+                              if ($VideoXmlDR/AdvanceInfo/Subtitles/Subtitle[@active='yes'])
+                              then 
+                                    ( 
+                                      (xdmp:node-replace($SubtitleActiveDR, $newActive)),
+                                      (xdmp:node-insert-child($VideoXmlDR/AdvanceInfo/Subtitles,$Subtitle)),
+                                      xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Added Subtitle (Draft) ] VideoId: ",$VideoID)),
+									  "Success"
+                                    )
+                              else if (($VideoXmlDR/AdvanceInfo/Subtitles/Subtitle[@active='no']) or not($VideoXmlDR/AdvanceInfo/Subtitles/Subtitle))
+                              then (xdmp:node-insert-child($VideoXmlDR/AdvanceInfo/Subtitles,$Subtitle),"Success")
+                              else (xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Video XML Not Available (Draft) ] VideoId: ",$VideoID)), "Failed")
+                          )
+                      )
+                      
+             else if($VideoChunk/Video/Transcript)
+             then
+                      (
+                        (
+                          if ($VideoXmlPC/AdvanceInfo/Transcripts/Transcript[@active='yes'])
+                          then 
+                                ( 
+                                  (xdmp:node-insert-child($VideoXmlPC/AdvanceInfo/Transcripts,$Transcript)),
+                                  (xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Added Transcript (PCopy) ] VideoId: ",$VideoID)),
+								  "Success")
+                                )
+                          else if (($VideoXmlPC/AdvanceInfo/Transcripts/Transcript[@active='no']) or not($VideoXmlPC/AdvanceInfo/Transcripts/Transcript))
+                          then (xdmp:node-insert-child($VideoXmlPC/AdvanceInfo/Transcripts,$Transcript),"Success")
+                          else (xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Video XML Not Available (PCopy) ] VideoId: ",$VideoID)), "Failed")
+                           
+                         )
+                            ,
+                          (
+                            if ($VideoXmlDR/AdvanceInfo/Transcripts/Transcript[@active='yes'])
+                            then 
+                                ( 
+                                  (xdmp:node-insert-child($VideoXmlDR/AdvanceInfo/Transcripts,$Transcript)),
+                                  (xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Added Transcript (PCopy) ] VideoId: ",$VideoID)),
+								  "Success")
+                                )
+                            else if (($VideoXmlDR/AdvanceInfo/Transcripts/Transcript[@active='no']) or not($VideoXmlDR/AdvanceInfo/Transcripts/Transcript))
+                            then (xdmp:node-insert-child($VideoXmlDR/AdvanceInfo/Transcripts,$Transcript),"Success")
+                            else (xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Video XML Not Available (Draft) ] VideoId: ",$VideoID)), "Failed")
+                          )
+                      )
+             else (xdmp:log(concat("Please Provide Subtitle Or Transcript Element In Input Video XML -- VideoId: ",$VideoID)), "Failed")
+};
+
+declare function GetGuIdEntryId($VideoID as xs:string)
+{
+  let $VideoXml 	:= collection($constants:PCOPY)/Video[VideoNumber=$VideoID]
+  let $VideoNumber 	:= $VideoXml/VideoNumber/text()
+  let $StreamId 	:= $VideoXml/UploadVideo/File/@streamID/string()
+  let $VideoTitle   := $VideoXml/BasicInfo/Title/text()
+  
+  return
+  if( $VideoXml )
+      then
+        ( (<Video>
+          <VideoId>{$VideoNumber}</VideoId>
+          <GUID>{fn:data($VideoXml/@ID)}</GUID>
+          <EntryID>{$StreamId}</EntryID>
+		  <Title>{$VideoTitle}</Title>
+        </Video>)
+        ,
+        (xdmp:log(concat("[ IET-TV ][ GetGUIdEntryId ][ INFO ][ Sent GUID and EntryId ] VideoId: ",$VideoID)))
+        )
+      else
+        (
+        
+        (xdmp:log(concat("[ IET-TV ][ GetGUIdEntryId ][ INFO ][ FAILED ] VideoId: ",$VideoID)))
+        )
+};
+
 declare function GetVideoIdByVideoNumber($VideoNumber as xs:string)
 {
   data(collection($constants:PCOPY)/Video[VideoNumber=$VideoNumber]/@ID)
@@ -134,10 +290,7 @@ declare function isLiveVideoActive($Video as item())
 
 declare function ExcludeMostPopular($Video as item())
 {
-    let $IsExcludeMostPopular := if($Video/Video/AdvanceInfo/PermissionDetails/Permission[@type="ExcludeMostPopular"]/@status/string() = "yes")  then fn:true() else fn:false()
-	return if($IsExcludeMostPopular = fn:true())
-		   then fn:true()
-		   else fn:false()
+    if($Video/Video/AdvanceInfo/PermissionDetails/Permission[@type="ExcludeMostPopular" and @status = "yes"])  then fn:true() else fn:false()
 };
 
 declare function GetVideoElementForHomePage( $videos ) as item()*
@@ -258,6 +411,8 @@ declare function GetVideoActionProperty($ActionUri,$UserID,$UserEmail,$UserIP)
 {
 	let $GetActionDoc := doc($ActionUri)
 	let $CurrentView := $GetActionDoc/VideoAction/Views/text()
+	let $LiveCurrentView := $GetActionDoc/VideoAction/LiveViews/text()
+	(: let $LiveCurrentView := $GetActionDoc/VideoAction/LiveViews/text() :)
 	let $CurrentLike := count($GetActionDoc/VideoAction/User/Action[.='Like'])
 	let $CurrentDisLike := count($GetActionDoc/VideoAction/User/Action[.='Dislike'])
 	(:let $Log := xdmp:log($GetActionDoc):)
@@ -267,7 +422,8 @@ declare function GetVideoActionProperty($ActionUri,$UserID,$UserEmail,$UserIP)
 		<User><Action>{$UserAction}</Action></User>,
 		<Likes>{$CurrentLike}</Likes>,
 		<DisLikes>{$CurrentDisLike}</DisLikes>,
-		<Views>{if($CurrentView) then $CurrentView else "0"}</Views>
+		<Views>{if($CurrentView) then $CurrentView else "0"}</Views>,
+		<LiveViews>{if($LiveCurrentView) then $LiveCurrentView else "0"}</LiveViews>
 	)
 };
 
@@ -340,22 +496,19 @@ declare function GetVideoPopularByCount($popularCount as xs:integer)
 {
 	if( xs:integer($popularCount) != number(0) )
 	then
-		<CommonMostPopular>
-			{
-				let $PopularFile := GetCommonPopularFile()
-				for $Video in $PopularFile//Video[position() le $popularCount ]
-				let $IsVideoAvailable := doc-available(concat($constants:PCOPY_DIRECTORY ,$Video/VideoID/text(),'.xml'))
-				let $VideoUri := concat($constants:PCOPY_DIRECTORY ,$Video/VideoID/text(),'.xml')
-				let $VideoDoc := doc($VideoUri)
-				let $IsExcludeMostPopular := ExcludeMostPopular($VideoDoc)
-				return
-					if( $IsVideoAvailable eq fn:true() and $IsExcludeMostPopular eq fn:false() )
-					then
-					<VideoID>{$Video/VideoID/text()}</VideoID>
-					else ()
-
-			}
-		</CommonMostPopular>
+    let $PopularCount := <CommonMostPopular></CommonMostPopular>
+    let $UpdateID :=  for $VideoID in VIDEOS:GetCommonPopularFile()//Video/VideoID/text()
+                      let $DocUri := fn:concat($constants:PCOPY_DIRECTORY, $VideoID, ".xml")
+                      let $IsExcludeMostPopular := VIDEOS:ExcludeMostPopular(doc($DocUri))
+                      let $IsVideoAvailable := doc-available($DocUri)
+                      return
+                      if(fn:count($PopularCount/VideoID) lt $popularCount ) 
+                      then
+                        if($IsVideoAvailable eq fn:true() and $IsExcludeMostPopular eq fn:false())
+                        then xdmp:set($PopularCount,mem:node-insert-child($PopularCount,<VideoID IsVideoAvailable="{$IsVideoAvailable}" IsExcludeMostPopular="{$IsExcludeMostPopular}">{$VideoID}</VideoID>))
+                        else ()
+                      else ()
+        return $PopularCount
 	else
 		xdmp:log(concat("[ VideoPopular ][ Fail ][ Invalid popular-count ][ POPULAR-COUNT: ", $popularCount, " ]"))
 };
@@ -386,11 +539,12 @@ declare function GetVideoMostPopularByCount($popularCount as xs:integer)
 				let $TrueID := <Video></Video>
 				let $UpdateID :=  for $VideoID in $PopularFile//Video/VideoID/text()
 				                  let $DocUri := fn:concat($constants:PCOPY_DIRECTORY, $VideoID, ".xml")
-				                  let $IsExcludeMostPopular := ExcludeMostPopular(doc($DocUri))
+				                  (:let $IsExcludeMostPopular := ExcludeMostPopular(doc($DocUri)):)
 								  return
 									if(fn:count($TrueID/VID) lt $popularCount ) 
 									then
-									  if(fn:doc-available($DocUri) and $IsExcludeMostPopular eq fn:false() ) then xdmp:set($TrueID,mem:node-insert-child($TrueID,<VID>{$VideoID}</VID>)) else ()
+									  (:if(fn:doc-available($DocUri) and $IsExcludeMostPopular eq fn:false() ) then xdmp:set($TrueID,mem:node-insert-child($TrueID,<VID>{$VideoID}</VID>)) else () :)
+									  if(fn:doc-available($DocUri)) then xdmp:set($TrueID,mem:node-insert-child($TrueID,<VID>{$VideoID}</VID>)) else ()
 									else ()
 				for $VideoID in $TrueID/VID/text()
 				let $VideoDoc := fn:doc(concat($constants:PCOPY_DIRECTORY, $VideoID, ".xml"))
@@ -429,18 +583,11 @@ declare function GeneratePopularListAndGetPopularIdByCount($SkipChannel as item(
 																	let $VideoDoc := doc($VideoUri)
 																	let $IsSkipChannelVideo  := isVideoRelatedToSkipChannel($SkipChannel,$VideoDoc)
 																	let $IsVideoActive := if($VideoDoc/Video/PublishInfo/VideoPublish/@active/string() = "yes") then isVideoActive($VideoDoc) else isLiveVideoActive($VideoDoc)
-																	let $IsExcludeMostPopular := ExcludeMostPopular($VideoDoc)
 																	let $IsVideoAvailable := doc-available($VideoUri)
 																	return
-																		(
-																			if(  $IsExcludeMostPopular eq fn:false() )
-																			then xdmp:set($UpdatePopuarList, mem:node-delete($UpdatePopuarList/Video[VideoID = $VideoID]))
-																			else ()
-																			,
-																			if( ($IsSkipChannelVideo eq fn:true()) or ($IsVideoActive eq fn:false()) or ($IsVideoAvailable eq fn:false()) )
-																			then xdmp:set($UpdatePopuarList, mem:node-delete($UpdatePopuarList/Video[VideoID = $VideoID]))
-																			else ()
-																		)
+																		if( ($IsSkipChannelVideo eq fn:true()) or ($IsVideoActive eq fn:false()) or ($IsVideoAvailable eq fn:false()) )
+																		then xdmp:set($UpdatePopuarList, mem:node-delete($UpdatePopuarList/Video[VideoID = $VideoID]))
+																		else ()
 												return $UpdatePopuarList
 			let $SavePopularXML := 	xdmp:eval(	" 	xquery version '1.0-ml';
 													import module namespace constants  = 'http://www.TheIET.org/constants' at '/Utils/constants.xqy';
@@ -455,16 +602,20 @@ declare function GeneratePopularListAndGetPopularIdByCount($SkipChannel as item(
 												</options>
 											)
 			let $Log := xdmp:log("****************Popular Video File generated and saved successfully****************")
-			return
-				<CommonMostPopular>
-					{
-						for $Video in $CurrentMostPopularList//Video[position() le $popularCount ]
-						let $IsVideoAvailable := doc-available(concat($constants:PCOPY_DIRECTORY ,$Video/VideoID/text(),'.xml'))
-						let $VideoID := $Video/VideoID/string()
-						return
-							if($IsVideoAvailable eq fn:true()) then <VideoID>{$Video/VideoID/text()}</VideoID> else ()
-					}
-				</CommonMostPopular>
+			let $PopularCount := <CommonMostPopular></CommonMostPopular>
+			let $UpdateID :=  for $VideoID in $CurrentMostPopularList//Video/VideoID/text()
+							  let $DocUri := fn:concat($constants:PCOPY_DIRECTORY, $VideoID, ".xml")
+							  let $IsExcludeMostPopular := ExcludeMostPopular(doc($DocUri))
+							  let $IsVideoAvailable := doc-available($DocUri)
+							  return
+								if(fn:count($PopularCount/VideoID) lt $popularCount ) 
+								then
+								  if($IsVideoAvailable eq fn:true() and $IsExcludeMostPopular eq fn:false())
+								  then xdmp:set($PopularCount,mem:node-insert-child($PopularCount,<VideoID>{$VideoID}</VideoID>))
+								  else ()
+								else ()
+			return $PopularCount
+
 			
 		else
 			xdmp:log(concat("[ VideoPopular ][ Fail ][ Invalid popular-count ][ POPULAR-COUNT: ", $popularCount, " ]"))
@@ -940,7 +1091,26 @@ declare function GetVideoByEvent($EventId as xs:string) as item()*
 			return
 			<Video ID="{fn:data($EachVideo/Video/@ID)}">
 				{
-				$EachVideo//BasicInfo/Title
+				$EachVideo//BasicInfo/Title,
+				$EachVideo/Video/VideoNumber,
+				<Pricingtype>{$EachVideo//BasicInfo/PricingDetails/@type/string()}</Pricingtype>,
+				if ($EachVideo/Video/BasicInfo/PricingDetails[@type='Premium'])
+                then 
+                    (
+                      (if ($EachVideo/Video/BasicInfo/PricingDetails/DiscountList/Discount[@level='Member']/text())
+                      then <MemberDiscount>{$EachVideo/Video/BasicInfo/PricingDetails/DiscountList/Discount[@level='Member']/text()}</MemberDiscount>
+                      else <MemberDiscount>0</MemberDiscount>),
+                      (if ($EachVideo/Video/BasicInfo/PricingDetails/DiscountList/Discount[@level='Channel']/text())
+                      then <ChannelDiscount>{$EachVideo/Video/BasicInfo/PricingDetails/DiscountList/Discount[@level='Channel']/text()}</ChannelDiscount>
+                      else <ChannelDiscount>0</ChannelDiscount>),
+                      (if ($EachVideo/Video/BasicInfo/PricingDetails/DiscountList/Discount[@level='Event']/text())
+                      then <EventDiscount>{$EachVideo/Video/BasicInfo/PricingDetails/DiscountList/Discount[@level='Event']/text()}</EventDiscount>
+                      else <EventDiscount>0</EventDiscount>)
+                     ) 
+                else 
+                      (<MemberDiscount>0</MemberDiscount>,
+                      <ChannelDiscount>0</ChannelDiscount>,
+                      <EventDiscount>0</EventDiscount>)
 				}
 			</Video>
 	else
@@ -1166,7 +1336,7 @@ declare function GetVideoBySpeaker($SpeakerId as xs:string) as item()*
 		"NONE"
 };
 
-declare function GetVideoDetailsByEvent($SkipChannel as item(),$EventID as xs:string,$StartDate as xs:dateTime,$EndDate as xs:dateTime)
+declare function GetVideoDetailsByEvent($SkipChannel as item(),$EventID as xs:string,$StartDate as xs:dateTime,$EndDate as xs:dateTime,$RoomId as xs:string)
 {
 	let $VideoXML := if( $SkipChannel//text() ne "NONE" )
 	                 then
@@ -1177,7 +1347,8 @@ declare function GetVideoDetailsByEvent($SkipChannel as item(),$EventID as xs:st
                                                                                       ,
                                               cts:and-query(( cts:element-attribute-value-query(xs:QName("Event"),xs:QName("ID"),$EventID),
                                                               cts:element-range-query(xs:QName("StartDate"),">=",$StartDate),
-                                                              cts:element-range-query(xs:QName("StartDate"),"<=",$EndDate)
+                                                              cts:element-range-query(xs:QName("StartDate"),"<=",$EndDate),
+															  cts:element-attribute-value-query(xs:QName("Room"),xs:QName("ID"),$RoomId)
                                                            ))
                                )
 				     else
@@ -1187,7 +1358,8 @@ declare function GetVideoDetailsByEvent($SkipChannel as item(),$EventID as xs:st
                                                                                       ,
                                               cts:and-query(( cts:element-attribute-value-query(xs:QName("Event"),xs:QName("ID"),$EventID),
                                                               cts:element-range-query(xs:QName("StartDate"),">=",$StartDate),
-                                                              cts:element-range-query(xs:QName("StartDate"),"<=",$EndDate)
+                                                              cts:element-range-query(xs:QName("StartDate"),"<=",$EndDate),
+															  cts:element-attribute-value-query(xs:QName("Room"),xs:QName("ID"),$RoomId)
                                                            ))
                                )
 
@@ -1457,7 +1629,7 @@ declare function GetVideoDetailsReport($TermToSearch as xs:string, $PageLength a
 										<path-index>ModifiedInfo/Date</path-index>
 									</range>
 								</constraint>
-								<additional-query>{cts:collection-query($constants:VIDEO_COLLECTION)}</additional-query>
+								<additional-query>{cts:collection-query($constants:PCOPY)}</additional-query>
 								<additional-query>
 								{
 									cts:and-query((
