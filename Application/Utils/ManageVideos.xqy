@@ -12,6 +12,56 @@ import module namespace mem       = "http://xqdev.com/in-mem-update"     at  "/M
    Program will go from current date and check RecordStartDate if it is previous date, fatch out the result.
 :)
 
+
+declare function VIDEOS:RangeDateData($DateType as xs:string,$StartDate as xs:dateTime,$EndDate as xs:dateTime)
+{
+        let $DateRange :=  cts:and-query((
+                                    cts:element-range-query(xs:QName($DateType), ">=", xs:dateTime($StartDate)),
+                                    cts:element-range-query(xs:QName($DateType), "<=", xs:dateTime($EndDate))) )
+        return $DateRange									
+}; 
+
+declare function VIDEOS:RangeDateRecordProcessing($DateType as xs:string,$VideoType as xs:string,$StartDate as xs:dateTime,$EndDate as xs:dateTime)
+{
+	                if($DateType="VideoCreatedDate")
+                    then (
+                            cts:search(doc()[contains(base-uri(),concat('/',$VideoType,'/'))][//VideoCreatedDate[text()!='']],VIDEOS:RangeDateData("VideoCreatedDate",$StartDate,$EndDate))
+                          )
+                    else if($DateType="VideoUploadDate")
+                    then (
+                            cts:search(doc()[contains(base-uri(),concat('/',$VideoType,'/'))][//UploadVideo/File/UploadDate[text()!='']],VIDEOS:RangeDateData("UploadDate",$StartDate,$EndDate))
+                          )
+                    else if($DateType="FinalPublishDate")
+                    then (
+                            cts:search(doc()[contains(base-uri(),concat('/',$VideoType,'/'))][//PublishInfo/VideoPublish[@active='yes']],
+                            cts:or-query(( VIDEOS:RangeDateData("FinalStartDate",$StartDate,$EndDate),
+                            VIDEOS:RangeDateData("RecordStartDate",$StartDate,$EndDate)
+                            )))
+                         ) 
+                    else if($DateType="FinalPublishDate")
+                    then (
+                            cts:search(doc()[contains(base-uri(),concat('/',$VideoType,'/'))][//PublishInfo/LivePublish[@active='yes']],
+                            cts:or-query(( VIDEOS:RangeDateData("LiveFinalStartDate",$StartDate,$EndDate),
+                            VIDEOS:RangeDateData("LiveRecordStartDate",$StartDate,$EndDate)
+                            )))
+                         ) 
+                    else if($DateType="RecordCreatedDate")
+                    then (
+                            cts:search(doc()[contains(base-uri(),concat('/',$VideoType,'/'))][contains(//CreationInfo/Date,'T')],cts:or-query((
+                            cts:and-query((
+                                    cts:path-range-query("ModifiedInfo/Date", ">=", xs:dateTime($StartDate)),
+                                    cts:path-range-query("ModifiedInfo/Date", "<=", xs:dateTime($EndDate))) ),
+                            cts:and-query((
+                                    cts:path-range-query("CreationInfo/Date", ">=", xs:dateTime($StartDate)),
+                                    cts:path-range-query("CreationInfo/Date", "<=", xs:dateTime($EndDate))) )
+                            )))
+                         ) 
+                    else ()
+
+    						
+};
+
+
 declare function VIDEOS:AddSubtitleTranscript($VideoChunk as item())
 {
   
@@ -1046,9 +1096,17 @@ declare function GetVideoByEvent($EventId as xs:string) as item()*
 				<Pricingtype>{$EachVideo//BasicInfo/PricingDetails/@type/string()}</Pricingtype>,
 				if ($EachVideo/Video/BasicInfo/PricingDetails[@type='Premium'])
                 then 
-                      (<MemberDiscount>{$EachVideo/Video/BasicInfo/PricingDetails/DiscountList/Discount[@level='Member']/text()}</MemberDiscount>,
-                      <ChannelDiscount>{$EachVideo/Video/BasicInfo/PricingDetails/DiscountList/Discount[@level='Channel']/text()}</ChannelDiscount>,
-                      <EventDiscount>{$EachVideo/Video/BasicInfo/PricingDetails/DiscountList/Discount[@level='Event']/text()}</EventDiscount>)
+                    (
+                      (if ($EachVideo/Video/BasicInfo/PricingDetails/DiscountList/Discount[@level='Member']/text())
+                      then <MemberDiscount>{$EachVideo/Video/BasicInfo/PricingDetails/DiscountList/Discount[@level='Member']/text()}</MemberDiscount>
+                      else <MemberDiscount>0</MemberDiscount>),
+                      (if ($EachVideo/Video/BasicInfo/PricingDetails/DiscountList/Discount[@level='Channel']/text())
+                      then <ChannelDiscount>{$EachVideo/Video/BasicInfo/PricingDetails/DiscountList/Discount[@level='Channel']/text()}</ChannelDiscount>
+                      else <ChannelDiscount>0</ChannelDiscount>),
+                      (if ($EachVideo/Video/BasicInfo/PricingDetails/DiscountList/Discount[@level='Event']/text())
+                      then <EventDiscount>{$EachVideo/Video/BasicInfo/PricingDetails/DiscountList/Discount[@level='Event']/text()}</EventDiscount>
+                      else <EventDiscount>0</EventDiscount>)
+                     ) 
                 else 
                       (<MemberDiscount>0</MemberDiscount>,
                       <ChannelDiscount>0</ChannelDiscount>,
