@@ -23,6 +23,8 @@ declare function VIDEOS:RangeDateData($DateType as xs:string,$StartDate as xs:da
 
 declare function VIDEOS:RangeDateRecordProcessing($DateType as xs:string,$VideoType as xs:string,$StartDate as xs:dateTime,$EndDate as xs:dateTime)
 {
+	   if($VideoType='PCopy')
+	   then
 	                if($DateType="VideoCreatedDate")
                     then (
                             cts:search(doc()[contains(base-uri(),concat('/',$VideoType,'/'))][//VideoCreatedDate[text()!='']],VIDEOS:RangeDateData("VideoCreatedDate",$StartDate,$EndDate))
@@ -33,18 +35,20 @@ declare function VIDEOS:RangeDateRecordProcessing($DateType as xs:string,$VideoT
                           )
                     else if($DateType="FinalPublishDate")
                     then (
+                            (
                             cts:search(doc()[contains(base-uri(),concat('/',$VideoType,'/'))][//PublishInfo/VideoPublish[@active='yes']],
                             cts:or-query(( VIDEOS:RangeDateData("FinalStartDate",$StartDate,$EndDate),
                             VIDEOS:RangeDateData("RecordStartDate",$StartDate,$EndDate)
                             )))
-                         ) 
-                    else if($DateType="FinalPublishDate")
-                    then (
-                            cts:search(doc()[contains(base-uri(),concat('/',$VideoType,'/'))][//PublishInfo/LivePublish[@active='yes']],
+                            )
+                            ,
+                            (
+                             cts:search(doc()[contains(base-uri(),concat('/',$VideoType,'/'))][//PublishInfo/LivePublish[@active='yes']],
                             cts:or-query(( VIDEOS:RangeDateData("LiveFinalStartDate",$StartDate,$EndDate),
                             VIDEOS:RangeDateData("LiveRecordStartDate",$StartDate,$EndDate)
                             )))
-                         ) 
+                            )
+                         )
                     else if($DateType="RecordCreatedDate")
                     then (
                             cts:search(doc()[contains(base-uri(),concat('/',$VideoType,'/'))][contains(//CreationInfo/Date,'T')],cts:or-query((
@@ -58,6 +62,12 @@ declare function VIDEOS:RangeDateRecordProcessing($DateType as xs:string,$VideoT
                          ) 
                     else ()
 
+    	else
+    	        if($DateType="VideoCreatedDate")
+                then (
+                       cts:search(doc()[contains(base-uri(),concat('/',$VideoType,'/'))][//VideoStatus='Draft'][//VideoCreatedDate[text()!='']],VIDEOS:RangeDateData("VideoCreatedDate",$StartDate,$EndDate))
+                      )
+                else ()
     						
 };
 
