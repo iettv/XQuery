@@ -25,6 +25,7 @@ declare function local:GetXMLFile($Video_ID as xs:string)
 
  let $ActivityXML  	:= xdmp:unquote($inputSearchDetails) 
 (:let $ActivityXML  	:= <Activity><ID>5ba5de4a-489e-4053-891e-418146c03230</ID><EntityID Type="VideoId">d1515fdb-925b-45a5-a6e8-c6101c99477d</EntityID><PlatformID>IET-TV</PlatformID><ActivityDate>2015-05-29</ActivityDate><ActivityTime>13:24:56</ActivityTime><Actor><ActorType>Unanonymous</ActorType><UserID>-1</UserID><UserName>Unknown Status</UserName><UserIP>192.168.2.110</UserIP><BrowserName>Chrome</BrowserName><BrowserVersion>43.0</BrowserVersion><Device>Desktop</Device><AccountType>Unknown Status</AccountType><CorporateAccountID>-1</CorporateAccountID><CorporateAccountName>Unknown Status</CorporateAccountName><UserType>Unknown Status</UserType></Actor><Action><Type>View</Type><SubType/><Details/><Description/><ActivityType>WebPortal</ActivityType><AdditionalInfo><NameValue><Name>VideoId</Name><Value>d1515fdb-925b-45a5-a6e8-c6101c99477d</Value></NameValue><NameValue><Name>VideoTitle</Name><Value>VideoTitle</Value></NameValue><NameValue><Name>ChannelId</Name><Value>0</Value></NameValue><NameValue><Name>ChannelName</Name><Value/></NameValue><NameValue><Name>SubscriptionType</Name><Value>SubscriptionType</Value></NameValue><NameValue><Name>Duration</Name><Value>Duration</Value></NameValue></AdditionalInfo></Action></Activity>:)
+let $Log 			:= xdmp:log(concat("[ IET-TV ][ ActivityIngestion ][ Activity Logging Started ]"))
 let $ActivityDate 	:= xs:date($ActivityXML/Activity/ActivityDate/string())
 let $CurrentYear 	:= fn:year-from-date($ActivityDate)
 let $CurrentMonth 	:= functx:month-name-en($ActivityDate)
@@ -45,27 +46,20 @@ let $SubscriptionType        := $ActivityXML//Action/AdditionalInfo/NameValue[ma
 
 let $GetMasterXML := local:GetXMLFile($Video_ID)
 
-let $FetchTitle := $GetMasterXML//BasicInfo/Title/string()
-let $FetchDuration := $GetMasterXML//UploadVideo/File/Duration/string()
-let $FetchSubscriptionType := $GetMasterXML//PricingDetails/@type/string()
+let $FetchTitle := ($GetMasterXML//BasicInfo/Title/string())[1]
+let $FetchDuration := ($GetMasterXML//UploadVideo/File/Duration/string())[1]
+let $FetchSubscriptionType := ($GetMasterXML//PricingDetails/@type/string())[1]
 
-let $EmbedTitle := mem:node-replace($ActivityXML//Action/AdditionalInfo/NameValue[matches(Name,'VideoTitle')]/Value, <Value>{$FetchTitle}</Value>)
-
-let $UpdatedXML1   := if ($ActivityXML//Action/AdditionalInfo/NameValue[matches(Name,'VideoTitle')]/Value[.=''])
-                     then ($EmbedTitle)
+let $UpdatedXML1   := if (($ActivityXML//Action/AdditionalInfo/NameValue[matches(Name,'VideoTitle')]/Value[.=''])[1])
+                     then (mem:node-replace(($ActivityXML//Action/AdditionalInfo/NameValue[matches(Name,'VideoTitle')]/Value)[1], <Value>{$FetchTitle}</Value>))
                      else ($ActivityXML)
 
-let $EmbedDuration := mem:node-replace($UpdatedXML1//Action/AdditionalInfo/NameValue[matches(Name,'Duration')]/Value, <Value>{$FetchDuration}</Value>)
-
-let $UpdatedXML2   := if ($UpdatedXML1//Action/AdditionalInfo/NameValue[matches(Name,'Duration')]/Value[.=''])
-                     then ($EmbedDuration)
+  let $UpdatedXML2   := if (($UpdatedXML1//Action/AdditionalInfo/NameValue[matches(Name,'Duration')]/Value[.=''])[1])
+                     then (mem:node-replace(($ActivityXML//Action/AdditionalInfo/NameValue[matches(Name,'Duration')]/Value)[1], <Value>{$FetchDuration}</Value>))
                      else ($UpdatedXML1)
 
-
-let $EmbedSubscriptionType := mem:node-replace($UpdatedXML2//Action/AdditionalInfo/NameValue[matches(Name,'SubscriptionType')]/Value, <Value>{$FetchSubscriptionType}</Value>)
-
-let $UpdatedXML3   := if ($UpdatedXML2//Action/AdditionalInfo/NameValue[matches(Name,'SubscriptionType')]/Value[.=''])
-                     then ($EmbedSubscriptionType)
+let $UpdatedXML3   := if (($UpdatedXML2//Action/AdditionalInfo/NameValue[matches(Name,'SubscriptionType')]/Value[.=''])[1])
+                     then (mem:node-replace(($UpdatedXML2//Action/AdditionalInfo/NameValue[matches(Name,'SubscriptionType')]/Value)[1], <Value>{$FetchSubscriptionType}</Value>))
                      else ($UpdatedXML2)
 
 return 
@@ -78,7 +72,7 @@ return
     )}
   catch($e)
     {(
-        xdmp:log(concat("[ IET-TV ][ ActivityIngestion ][ ERROR ][ ",$ActivityID, " ]")),
+        xdmp:log(concat("[ IET-TV ][ ActivityIngestion ][ ERROR ][ Activity Failed XML : ",$inputSearchDetails, " ]")),
         "ERROR"
     )}
     
