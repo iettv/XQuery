@@ -16,7 +16,7 @@ declare function local:updateLikeCount($VideoID, $UpdatedLike)
 		  return
 			if($LikeCount)
 			then xdmp:node-replace($LikeCount, <LikeCount>{$UpdatedLike}</LikeCount>)
-			else xdmp:node-insert-child($PHistoryUri/Video,  <LikeCount>{$UpdatedLike}</LikeCount>)
+			else xdmp:node-insert-child(doc($PHistoryUri)/Video,  <LikeCount>{$UpdatedLike}</LikeCount>)
 	   else ()
 };
 
@@ -44,6 +44,7 @@ return
 	(: To check: is video exist on ML database :)
     let $VideoUri := concat($constants:PCOPY_DIRECTORY, $VideoID, ".xml")
     let $DraftVideoUri := concat($constants:PCOPY_DIRECTORY, $VideoID, ".xml")
+    let $CheckViews := doc(concat($constants:ACTION_DIRECTORY,$VideoID,$constants:SUF_ACTION,".xml"))
     return 
     if( not(doc-available($VideoUri)) )
     then
@@ -52,7 +53,9 @@ return
 		let $ActionUri := concat($constants:ACTION_DIRECTORY,$VideoID,$constants:SUF_ACTION,".xml")
 		let $IsActionDocAvailable := doc-available($ActionUri)
 		return
-         			if( $Action = "View" and ($IsActionDocAvailable = fn:false()) )
+         			
+         			if( ($Action="View") and ((($IsActionDocAvailable = fn:false())) or (not($CheckViews/VideoAction/LiveViews))) )
+         			
          			    then
          			            let $ActionXML := if (fn:doc($DraftVideoUri)/Video/PublishInfo/LivePublish[@active='yes'])
          			                              then
@@ -176,12 +179,12 @@ return
 							)	
 					else ()
 			else
-				let $ActionXML := <VideoAction><VideoID>{$VideoID}</VideoID><Views>0</Views><User><UserID>{$UserID}</UserID><UserIP>{$UserIP}</UserIP><Email>{$UserEmail}</Email><Action>{$Action}</Action></User></VideoAction>
+				let $ActionXML := <VideoAction><VideoID>{$VideoID}</VideoID><LiveViews>0</LiveViews><User><UserID>{$UserID}</UserID><UserIP>{$UserIP}</UserIP><Email>{$UserEmail}</Email><Action>{$Action}</Action></User></VideoAction>
 				return
 					(
 						xdmp:document-insert($ActionUri,$ActionXML,(), $constants:ACTION)
 						,
-						<Result id="{$VideoID}"><User><Action>{$Action}</Action></User><Likes>{if($Action="Like") then 1 else 0}</Likes><DisLikes>{if($Action="Dislike") then 1 else 0}</DisLikes><Views>0</Views></Result>
+						<Result id="{$VideoID}"><User><Action>{$Action}</Action></User><Likes>{if($Action="Like") then 1 else 0}</Likes><DisLikes>{if($Action="Dislike") then 1 else 0}</DisLikes><LiveViews>0</LiveViews></Result>
 						,
 						local:updateLikeCount($VideoID, if($Action="Like") then 1 else 0)
 					)

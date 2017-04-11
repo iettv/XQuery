@@ -72,8 +72,7 @@ return
     )}
   catch($e)
     {(
-        xdmp:log(concat("[ IET-TV ][ ActivityIngestion ][ ERROR ][ ",$ActivityID, " ]")),
-        "ERROR",
-        xdmp:log(concat("[ IET-TV ][ ActivityIngestion ][ ERROR ][ Activity Failed XML : ",$UpdatedXML3, " ]"))
+        xdmp:log(concat("[ IET-TV ][ ActivityIngestion ][ ERROR ][ Activity Failed XML : ",$inputSearchDetails, " ]")),
+        "ERROR"
     )}
     
