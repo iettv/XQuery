@@ -35,7 +35,7 @@ declare function VIDEOS:AddInspecAbstract($VideoXml as item())
                                then (for $i in $VideoXml/Video/KeyWordInfo/ChannelKeywordList/Channel/KeywordList/DefaultKeyword return $i/text()) else (),
                               if ($VideoXml/Video/KeyWordInfo/CustomKeywordList/CustomKeyword)
                               then (for $i in $VideoXml/Video/KeyWordInfo/CustomKeywordList/CustomKeyword return $i) else ()
-                           ),":") 
+                           ),";") 
   
   
   return 
