@@ -19,20 +19,6 @@ declare function local:updateLikeCount($VideoID, $UpdatedLike)
 	   else ()
 };
 
-(:declare function local:updateLikeCount($VideoID, $UpdatedLike)
-{
-	let $PHistoryUri := fn:concat($constants:PCOPY_DIRECTORY,$VideoID,".xml")
-	return
-	   if( fn:doc-available($PHistoryUri) )
-	   then
-		  let $LikeCount := doc($PHistoryUri)/Video/LikeCount
-		  return
-			if($LikeCount)
-			then xdmp:node-replace($LikeCount, <LikeCount>{$UpdatedLike}</LikeCount>)
-			else xdmp:node-insert-child($PHistoryUri/Video,  <LikeCount>{$UpdatedLike}</LikeCount>)
-	   else ()
-};:)
-
 declare variable $inputSearchDetails as xs:string external;
 
 let $VideoXML := xdmp:unquote($inputSearchDetails)
@@ -41,6 +27,7 @@ let $Action := $VideoXML/VideoAction/Action/text()
 let $UserID := $VideoXML/VideoAction/UserID/text()
 let $UserIP := $VideoXML/VideoAction/UserIP/text()
 let $UserEmail :=$VideoXML/VideoAction/Email/text()
+let $LiveViewCount := doc(fn:concat($constants:PCOPY_DIRECTORY,$VideoID,".xml"))/Video/LiveViewCount/string()
 return
   if( not($VideoID) or (string-length($VideoID) le 0) )
   then
@@ -86,7 +73,7 @@ return
 									return xdmp:node-insert-child($VideoXML/Video,  <ViewCount>{if($View) then sum($View+1) else 0}</ViewCount>)
 						   else ()
 						,
-						<Result id="{$VideoID}"><User><Action></Action></User><Likes>0</Likes><DisLikes>0</DisLikes><Views>1</Views></Result>
+						<Result id="{$VideoID}"><User><Action></Action></User><Likes>0</Likes><DisLikes>0</DisLikes><Views>1</Views><LiveViews>{$LiveViewCount}</LiveViews></Result>
 					)
 			else
 			if( $Action = "View" and ($IsActionDocAvailable = fn:true()) )
@@ -113,7 +100,7 @@ return
 									return xdmp:node-insert-child($VideoXML/Video,  <ViewCount>{if($View) then sum($View+1) else 0}</ViewCount>)
 						   else ()						
 						,
-						<Result id="{$VideoID}"><User><Action>{$UserAction}</Action></User><Likes>{$CurrentLike}</Likes><DisLikes>{$CurrentDisLike}</DisLikes><Views>{sum($CurrentView + 1)}</Views></Result>
+						<Result id="{$VideoID}"><User><Action>{$UserAction}</Action></User><Likes>{$CurrentLike}</Likes><DisLikes>{$CurrentDisLike}</DisLikes><Views>{sum($CurrentView + 1)}</Views><LiveViews>{$LiveViewCount}</LiveViews></Result>
 					)
 			else
 			if( $Action != "View" and $IsActionDocAvailable = fn:true() )
@@ -124,24 +111,6 @@ return
 				let $CurrentDisLike := count($GetActionDoc/VideoAction/User/Action[.='Dislike'])
 				let $IsUserActionExists := $GetActionDoc/VideoAction/User[(UserID=$UserID) or (UserIP=$UserIP) or (Email=$UserEmail)]
 				let $UserAction := $IsUserActionExists/Action/text()
-                (:let $UpdatedLike := if(not($IsUserActionExists/child::*) and $Action = "Like" )
-									then sum($CurrentLike + 1)
-									else
-									if(not($IsUserActionExists/child::*) and $Action = "Dislike" )
-									then sum($CurrentLike - 1)
-									else $CurrentLike
-				let $UpdatedDisLike := if(not($IsUserActionExists/child::*) and $Action = "Dislike" ) then sum($CurrentDisLike + 1) else $CurrentDisLike
-				let $UpdateVideoXML := 	
-											let $PHistoryUri := fn:concat($constants:PCOPY_DIRECTORY,$VideoID,".xml")
-											return
-											   if( fn:doc-available($PHistoryUri) )
-											   then
-												  let $LikeCount := doc($PHistoryUri)/Video/LikeCount
-												  return
-													if($LikeCount)
-													then xdmp:node-replace($LikeCount, <LikeCount>{$UpdatedLike}</LikeCount>)
-													else xdmp:node-insert-child($VideoXML/Video,  <LikeCount>{$UpdatedLike}</LikeCount>)
-											   else ():)
 
 				return
 					if(not($IsUserActionExists/child::*))
@@ -150,13 +119,13 @@ return
 						then
 							(
 								xdmp:node-insert-child($GetActionDoc/VideoAction, <User><UserID>{$UserID}</UserID><UserIP>{$UserIP}</UserIP><Email>{$UserEmail}</Email><Action>{$Action}</Action></User>),
-								<Result id="{$VideoID}"><User><Action>{$Action}</Action></User><Likes>{sum($CurrentLike + 1)}</Likes><DisLikes>{$CurrentDisLike}</DisLikes><Views>{$CurrentView}</Views></Result>,
+								<Result id="{$VideoID}"><User><Action>{$Action}</Action></User><Likes>{sum($CurrentLike + 1)}</Likes><DisLikes>{$CurrentDisLike}</DisLikes><Views>{$CurrentView}</Views><LiveViews>{$LiveViewCount}</LiveViews></Result>,
 								local:updateLikeCount($VideoID,sum($CurrentLike + 1))
 							)
 						else
 							(
 								xdmp:node-insert-child($GetActionDoc/VideoAction, <User><UserID>{$UserID}</UserID><UserIP>{$UserIP}</UserIP><Email>{$UserEmail}</Email><Action>{$Action}</Action></User>),
-								<Result id="{$VideoID}"><User><Action>{$Action}</Action></User><Likes>{$CurrentLike}</Likes><DisLikes>{sum($CurrentDisLike + 1)}</DisLikes><Views>{$CurrentView}</Views></Result>,
+								<Result id="{$VideoID}"><User><Action>{$Action}</Action></User><Likes>{$CurrentLike}</Likes><DisLikes>{sum($CurrentDisLike + 1)}</DisLikes><Views>{$CurrentView}</Views><LiveViews>{$LiveViewCount}</LiveViews></Result>,
 								local:updateLikeCount($VideoID,$CurrentLike)
 							)
 					else
@@ -168,12 +137,12 @@ return
 								then
 									(
 									xdmp:node-replace($IsUserActionExists/Action, <Action>{$Action}</Action>),
-									<Result id="{$VideoID}"><User><Action>{$UserAction}</Action></User><Likes>{sum($CurrentLike + 1)}</Likes><DisLikes>{if($CurrentDisLike) then sum($CurrentDisLike - 1) else 0}</DisLikes><Views>{$CurrentView}</Views></Result>,
+									<Result id="{$VideoID}"><User><Action>{$UserAction}</Action></User><Likes>{sum($CurrentLike + 1)}</Likes><DisLikes>{if($CurrentDisLike) then sum($CurrentDisLike - 1) else 0}</DisLikes><Views>{$CurrentView}</Views><LiveViews>{$LiveViewCount}</LiveViews></Result>,
 									local:updateLikeCount($VideoID,sum($CurrentLike + 1))
 									)
 								else
 									(
-										<Result id="{$VideoID}"><User><Action>{$UserAction}</Action></User><Likes>{if($CurrentLike) then $CurrentLike else 0}</Likes><DisLikes>{if($CurrentDisLike) then $CurrentDisLike else 0}</DisLikes><Views>{$CurrentView}</Views></Result>,
+										<Result id="{$VideoID}"><User><Action>{$UserAction}</Action></User><Likes>{if($CurrentLike) then $CurrentLike else 0}</Likes><DisLikes>{if($CurrentDisLike) then $CurrentDisLike else 0}</DisLikes><Views>{$CurrentView}</Views><LiveViews>{$LiveViewCount}</LiveViews></Result>,
 										local:updateLikeCount($VideoID, if($CurrentLike) then $CurrentLike else 0)
 									)	
 								
@@ -182,12 +151,12 @@ return
 							then
 								(
 								xdmp:node-replace($IsUserActionExists/Action, <Action>{$Action}</Action>),
-								<Result id="{$VideoID}"><User><Action>{$UserAction}</Action></User><Likes>{if($CurrentLike) then sum($CurrentLike - 1) else 0}</Likes><DisLikes>{sum($CurrentDisLike + 1)}</DisLikes><Views>{$CurrentView}</Views></Result>,
+								<Result id="{$VideoID}"><User><Action>{$UserAction}</Action></User><Likes>{if($CurrentLike) then sum($CurrentLike - 1) else 0}</Likes><DisLikes>{sum($CurrentDisLike + 1)}</DisLikes><Views>{$CurrentView}</Views><LiveViews>{$LiveViewCount}</LiveViews></Result>,
 								local:updateLikeCount($VideoID, if($CurrentLike) then sum($CurrentLike - 1) else 0)
 								)
 							else
 							(
-								<Result id="{$VideoID}"><User><Action>{$UserAction}</Action></User><Likes>{if($CurrentLike) then $CurrentLike else 0}</Likes><DisLikes>{if($CurrentDisLike) then $CurrentDisLike else 0}</DisLikes><Views>{$CurrentView}</Views></Result>,
+								<Result id="{$VideoID}"><User><Action>{$UserAction}</Action></User><Likes>{if($CurrentLike) then $CurrentLike else 0}</Likes><DisLikes>{if($CurrentDisLike) then $CurrentDisLike else 0}</DisLikes><Views>{$CurrentView}</Views><LiveViews>{$LiveViewCount}</LiveViews></Result>,
 								local:updateLikeCount($VideoID, if($CurrentLike) then $CurrentLike else 0)
 							)	
 					else ()
@@ -197,7 +166,7 @@ return
 					(
 						xdmp:document-insert($ActionUri,$ActionXML,(), $constants:ACTION)
 						,
-						<Result id="{$VideoID}"><User><Action>{$Action}</Action></User><Likes>{if($Action="Like") then 1 else 0}</Likes><DisLikes>{if($Action="Dislike") then 1 else 0}</DisLikes><Views>0</Views></Result>
+						<Result id="{$VideoID}"><User><Action>{$Action}</Action></User><Likes>{if($Action="Like") then 1 else 0}</Likes><DisLikes>{if($Action="Dislike") then 1 else 0}</DisLikes><Views>0</Views><LiveViews>{$LiveViewCount}</LiveViews></Result>
 						,
 						local:updateLikeCount($VideoID, if($Action="Like") then 1 else 0)
 					)
