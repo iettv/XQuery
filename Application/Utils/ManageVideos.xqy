@@ -14,8 +14,7 @@ import module namespace mem       = "http://xqdev.com/in-mem-update"     at  "/M
 
 declare function VIDEOS:AddInspecAbstract($VideoXml as item())
 {
-  
- let $Title            := $VideoXml/Video/BasicInfo/Title/string()
+  let $Title            := $VideoXml/Video/BasicInfo/Title/string()
   let $ShortDescription := $VideoXml/Video/BasicInfo/ShortDescription/string()
   let $Abstract         := $VideoXml/Video/BasicInfo/Abstract/.
   let $Speakers         := string-join((for $Person in $VideoXml/Video/Speakers/Person  
@@ -35,9 +34,7 @@ declare function VIDEOS:AddInspecAbstract($VideoXml as item())
                                then (for $i in $VideoXml/Video/KeyWordInfo/ChannelKeywordList/Channel/KeywordList/DefaultKeyword return $i/text()) else (),
                               if ($VideoXml/Video/KeyWordInfo/CustomKeywordList/CustomKeyword)
                               then (for $i in $VideoXml/Video/KeyWordInfo/CustomKeywordList/CustomKeyword return $i) else ()
-                           ),";") 
-  
-  
+                           ),";")
   return 
           
         fn:string-join(( if (string-length($Title) ge 1) then (normalize-space($Title)) else (),
@@ -49,8 +46,6 @@ declare function VIDEOS:AddInspecAbstract($VideoXml as item())
         if (string-length($Keywords) ge 1) then (normalize-space($Keywords)) else ()
         ), "
         ")
-
-
 };
 
 
@@ -114,8 +109,7 @@ declare function VIDEOS:RangeDateRecordProcessing($DateType as xs:string,$VideoT
 
 
 declare function VIDEOS:AddSubtitleTranscript($VideoChunk as item())
-{
-  
+{ 
   let $VideoID      := $VideoChunk/Video/GUID
   let $Subtitle     := $VideoChunk/Video/Subtitle
   let $Transcript   := $VideoChunk/Video/Transcript
@@ -351,7 +345,6 @@ declare function GetVideoElementForHomePage( $videos ) as item()*
   let $UserEmail := ""
   let $UserID := ""
   let $VideoNumber 	:= $VideoXml/VideoNumber
-  let $VideoLiveViewCount 	:= $VideoXml/LiveViewCount
   let $VideoTitle := $VideoXml/BasicInfo/Title
   let $CreationInfo := $VideoXml/CreationInfo
   let $VideoAbstract := $VideoXml/BasicInfo/Abstract
@@ -383,7 +376,7 @@ declare function GetVideoElementForHomePage( $videos ) as item()*
         ,
 		GetVideoActionProperty(fn:concat($constants:ACTION_DIRECTORY,$VideoXml/@ID/string(),$constants:SUF_ACTION,".xml"),$UserID,$UserEmail,$UserIP)
 		,
-		<VideoLiveViewCount>{$VideoLiveViewCount}</VideoLiveViewCount>
+		GetVideoActionLiveProperty(fn:concat($constants:ACTION_LIVE_DIRECTORY,$VideoXml/@ID/string(),$constants:STUF_ACTION,".xml"),$UserID,$UserEmail,$UserIP)
 		,
               let $PubDate := $VideoXml/PublishInfo/VideoPublish/RecordStartDate/text()
               let $PubTime := $VideoXml/PublishInfo/VideoPublish/RecordStartTime/text()
@@ -411,7 +404,6 @@ declare function GetVideoDetailsByID( $videoID as xs:string, $UserID as xs:strin
 {
   let $VideoXml 	:= fn:doc(fn:concat($constants:PCOPY_DIRECTORY,$videoID,'.xml'))/Video
   let $VideoNumber 	:= $VideoXml/VideoNumber
-  let $VideoLiveViewCount 	:= $VideoXml/LiveViewCount
   let $BasicInfo 	:= $VideoXml/BasicInfo
   let $Pricing		:= $BasicInfo/PricingDetails
   let $Copyright 	:= $BasicInfo/CopyrightDetails
@@ -447,6 +439,7 @@ declare function GetVideoDetailsByID( $videoID as xs:string, $UserID as xs:strin
 			  $BasicInfo/VideoCategory,
 			  $BasicInfo/VideoCreatedDate,
 			  GetVideoActionProperty(fn:concat($constants:ACTION_DIRECTORY,$videoID,$constants:SUF_ACTION,".xml"),$UserID,$UserEmail,$UserIP),
+			  GetVideoActionLiveProperty(fn:concat($constants:ACTION_LIVE_DIRECTORY,$videoID,$constants:STUF_ACTION,".xml"),$UserID,$UserEmail,$UserIP),
 			  GetRelatedContent(fn:data($VideoXml/@ID))
             }
             <VideoDescription>{$BasicInfo/ShortDescription/text()}</VideoDescription>
@@ -456,7 +449,6 @@ declare function GetVideoDetailsByID( $videoID as xs:string, $UserID as xs:strin
             <Keywords>{for $EachKeyWord in $VideoXml//DefaultKeyword return $EachKeyWord}</Keywords>
 			<CustomKeywords>{for $EachKeyWord in $VideoXml//CustomKeyword return $EachKeyWord}</CustomKeywords>
             {$Permission,$VideoKeyWordInspec,$Events,$SeriesList,$Transcripts,$IETDigitalLibrary}
-			<VideoLiveViewCount>{$VideoLiveViewCount}</VideoLiveViewCount>
         </Video>
       else
         "NONE"
@@ -466,18 +458,30 @@ declare function GetVideoActionProperty($ActionUri,$UserID,$UserEmail,$UserIP)
 {
 	let $GetActionDoc := doc($ActionUri)
 	let $CurrentView := $GetActionDoc/VideoAction/Views/text()
-	let $LiveCurrentView := $GetActionDoc/VideoAction/LiveViews/text()
-	(: let $LiveCurrentView := $GetActionDoc/VideoAction/LiveViews/text() :)
 	let $CurrentLike := count($GetActionDoc/VideoAction/User/Action[.='Like'])
 	let $CurrentDisLike := count($GetActionDoc/VideoAction/User/Action[.='Dislike'])
-	(:let $Log := xdmp:log($GetActionDoc):)
 	let $UserAction := $GetActionDoc/VideoAction/User[UserID=$UserID][UserIP=$UserIP][Email=$UserEmail]/Action/text()
 	return 
 	(
 		<User><Action>{$UserAction}</Action></User>,
 		<Likes>{$CurrentLike}</Likes>,
 		<DisLikes>{$CurrentDisLike}</DisLikes>,
-		<Views>{if($CurrentView) then $CurrentView else "0"}</Views>,
+		<Views>{if($CurrentView) then $CurrentView else "0"}</Views>
+	)
+};
+
+declare function GetVideoActionLiveProperty($ActionUri,$UserID,$UserEmail,$UserIP)
+{
+	let $GetActionDoc := doc($ActionUri)
+	let $LiveCurrentView := $GetActionDoc/VideoAction/LiveViews/text()
+	let $CurrentLike := count($GetActionDoc/VideoAction/User/Action[.='Like'])
+	let $CurrentDisLike := count($GetActionDoc/VideoAction/User/Action[.='Dislike'])
+	let $UserAction := $GetActionDoc/VideoAction/User[UserID=$UserID][UserIP=$UserIP][Email=$UserEmail]/Action/text()
+	return 
+	(
+		<LiveUser><Action>{$UserAction}</Action></LiveUser>,
+		<LiveLikes>{$CurrentLike}</LiveLikes>,
+		<LiveDisLikes>{$CurrentDisLike}</LiveDisLikes>,
 		<LiveViews>{if($LiveCurrentView) then $LiveCurrentView else "0"}</LiveViews>
 	)
 };

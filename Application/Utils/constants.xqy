@@ -14,6 +14,7 @@ declare variable $constants:CHANNEL_CONFIG       			as xs:string := "Channel-Con
 declare variable $constants:ACTIVE_VIDEO_COLLECTION       	as xs:string := "Video-Status-Published";
 declare variable $constants:COMMENT 						as xs:string := "Comment-";
 declare variable $constants:ACTION 			   				as xs:string := "Action";
+declare variable $constants:ACTION_LIVE		   				as xs:string := "Action-Live";
 declare variable $constants:PCOPY 			   				as xs:string := "PublishedCopy";
 
 (: COMMON DIRECTORIES :)
@@ -21,6 +22,7 @@ declare variable $constants:VIDEO_DIRECTORY 	as xs:string := "/Video/";
 declare variable $constants:ADMIN_DIRECTORY 	as xs:string := "/Admin/";
 declare variable $constants:COMMENT_DIRECTORY 	as xs:string := "/Comment/";
 declare variable $constants:ACTION_DIRECTORY 	as xs:string := "/Action/";
+declare variable $constants:ACTION_LIVE_DIRECTORY 	as xs:string := "/ActionLive/";
 declare variable $constants:PCOPY_DIRECTORY 	as xs:string := "/PCopy/";
 
 (: COMMON PROPERTIES :)
@@ -30,6 +32,7 @@ declare variable $constants:PROP_CHANNEL_SEQUENCE as xs:string := "ChannelPageSe
 (: COMMON PREFIXES :)
 declare variable $constants:PRE_CHANNEL_CONFIG   as xs:string := "Channel-";
 declare variable $constants:SUF_ACTION   		 as xs:string := "-Action";
+declare variable $constants:STUF_ACTION   		 as xs:string := "-ActionLive";
 
 (: MOST POPULAR :)
 declare variable $constants:CommonPopular 		as xs:string := "/Admin/CommonMostPopular.xml";
@@ -74,8 +77,6 @@ declare variable $constants:VideoSequenceUri	as xs:string := "/Admin/Sequence.xm
 declare variable $constants:SkipChannelUri	as xs:string := "/Admin/SkipChannel.xml";
 
 (: VIDEO-DOI/URL :)
-declare variable $constants:VideoURL	as xs:string := "http://192.168.2.74/IETTVPortal/?videoid="; (: UAT : https://iettv-uat.theiet.org/?videoid= :) (: LIVE https://tv.theiet.org/?videoid= :)
+declare variable $constants:VideoURL	as xs:string := "https://iettv-uat.theiet.org/?videoid="; (: LIVE https://tv.theiet.org/?videoid= :)
 declare variable $constants:VideoDOI	as xs:string := "10.1049/iet-tv.vn.";
-
-(: METADATA UPGRADE :)
 declare variable $constants:MURI as xs:string := "/Admin/MetadataUpgrade.xml";
