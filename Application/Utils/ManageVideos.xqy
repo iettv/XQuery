@@ -12,6 +12,42 @@ import module namespace mem       = "http://xqdev.com/in-mem-update"     at  "/M
    Program will go from current date and check RecordStartDate if it is previous date, fatch out the result.
 :)
 
+declare function VIDEOS:AddInspecAbstract($VideoXml as item())
+{
+  let $Title            := $VideoXml/Video/BasicInfo/Title/string()
+  let $ShortDescription := $VideoXml/Video/BasicInfo/ShortDescription/string()
+  let $Abstract         := $VideoXml/Video/BasicInfo/Abstract/.
+  let $Speakers         := string-join((for $Person in $VideoXml/Video/Speakers/Person  
+                             let $GivenName        := $Person/Name/Given-Name/string()
+                             let $Surname          := $Person/Name/Surname/string()
+                             let $Organization     := $Person/Affiliations/Affiliation/Organization/OrganizationName/string()
+                             return
+                                    if (string-length($Organization) ge 1) then (concat($GivenName,' ',$Surname,':',$Organization)) else (concat($GivenName,' ',$Surname)) 
+                                   
+                             ),";")
+  let $GivenName        := $VideoXml/Video/Speakers/Person/Name/Given-Name/string()
+  let $Surname          := $VideoXml/Video/Speakers/Person/Name/Surname/string()
+  let $ChannelName      := $VideoXml/Video/BasicInfo/ChannelMapping/Channel[@default='true']/ChannelName/string()
+  let $ConferenceName   := $VideoXml/Video/Events/Event/Room/string()
+  let $EventName        := $VideoXml/Video/Events/Event/EventName/string()
+  let $Keywords         := string-join((if ($VideoXml/Video/KeyWordInfo/ChannelKeywordList/Channel/KeywordList/DefaultKeyword) 
+                               then (for $i in $VideoXml/Video/KeyWordInfo/ChannelKeywordList/Channel/KeywordList/DefaultKeyword return $i/text()) else (),
+                              if ($VideoXml/Video/KeyWordInfo/CustomKeywordList/CustomKeyword)
+                              then (for $i in $VideoXml/Video/KeyWordInfo/CustomKeywordList/CustomKeyword return $i) else ()
+                           ),";")
+  return 
+          
+        fn:string-join(( if (string-length($Title) ge 1) then (normalize-space($Title)) else (),
+        if (string-length($ShortDescription) ge 1) then (normalize-space($ShortDescription)) else (),
+        if (string-length($Abstract) ge 1) then (normalize-space($Abstract)) else (),
+        if (not(empty($Surname)) or not(empty($GivenName))) then (normalize-space($Speakers)) else (),
+        if (string-length($ChannelName) ge 1) then (normalize-space($ChannelName)) else (),
+        if (string-length($EventName) ge 1) then (normalize-space($EventName)) else (),
+        if (string-length($Keywords) ge 1) then (normalize-space($Keywords)) else ()
+        ), "
+        ")
+};
+
 
 declare function VIDEOS:RangeDateData($DateType as xs:string,$StartDate as xs:dateTime,$EndDate as xs:dateTime)
 {
@@ -73,8 +109,7 @@ declare function VIDEOS:RangeDateRecordProcessing($DateType as xs:string,$VideoT
 
 
 declare function VIDEOS:AddSubtitleTranscript($VideoChunk as item())
-{
-  
+{ 
   let $VideoID      := $VideoChunk/Video/GUID
   let $Subtitle     := $VideoChunk/Video/Subtitle
   let $Transcript   := $VideoChunk/Video/Transcript
@@ -341,6 +376,8 @@ declare function GetVideoElementForHomePage( $videos ) as item()*
         ,
 		GetVideoActionProperty(fn:concat($constants:ACTION_DIRECTORY,$VideoXml/@ID/string(),$constants:SUF_ACTION,".xml"),$UserID,$UserEmail,$UserIP)
 		,
+		GetVideoActionLiveProperty(fn:concat($constants:ACTION_LIVE_DIRECTORY,$VideoXml/@ID/string(),$constants:STUF_ACTION,".xml"),$UserID,$UserEmail,$UserIP)
+		,
               let $PubDate := $VideoXml/PublishInfo/VideoPublish/RecordStartDate/text()
               let $PubTime := $VideoXml/PublishInfo/VideoPublish/RecordStartTime/text()
               return
@@ -402,6 +439,7 @@ declare function GetVideoDetailsByID( $videoID as xs:string, $UserID as xs:strin
 			  $BasicInfo/VideoCategory,
 			  $BasicInfo/VideoCreatedDate,
 			  GetVideoActionProperty(fn:concat($constants:ACTION_DIRECTORY,$videoID,$constants:SUF_ACTION,".xml"),$UserID,$UserEmail,$UserIP),
+			  GetVideoActionLiveProperty(fn:concat($constants:ACTION_LIVE_DIRECTORY,$videoID,$constants:STUF_ACTION,".xml"),$UserID,$UserEmail,$UserIP),
 			  GetRelatedContent(fn:data($VideoXml/@ID))
             }
             <VideoDescription>{$BasicInfo/ShortDescription/text()}</VideoDescription>
@@ -411,7 +449,58 @@ declare function GetVideoDetailsByID( $videoID as xs:string, $UserID as xs:strin
             <Keywords>{for $EachKeyWord in $VideoXml//DefaultKeyword return $EachKeyWord}</Keywords>
 			<CustomKeywords>{for $EachKeyWord in $VideoXml//CustomKeyword return $EachKeyWord}</CustomKeywords>
             {$Permission,$VideoKeyWordInspec,$Events,$SeriesList,$Transcripts,$IETDigitalLibrary}
-			
+        </Video>
+      else
+        "NONE"
+};
+
+declare function GetVideoDetailsByID( $videoID as xs:string)
+{
+  let $VideoXml 	:= fn:doc(fn:concat($constants:VIDEO_DIRECTORY,$videoID,'.xml'))/Video
+  let $VideoNumber 	:= $VideoXml/VideoNumber
+  let $BasicInfo 	:= $VideoXml/BasicInfo
+  let $Pricing		:= $BasicInfo/PricingDetails
+  let $Copyright 	:= $BasicInfo/CopyrightDetails
+  let $Promo 		:= $BasicInfo/PromoDetails
+  let $Permission 	:= $VideoXml/AdvanceInfo/PermissionDetails
+  let $PublishInfo 	:= $VideoXml/PublishInfo
+  let $Duration 	:= $VideoXml/UploadVideo/File/Duration
+  let $Attachment 	:= $VideoXml/Attachments
+  let $ChannelName 	:= let $Channel := $VideoXml/BasicInfo/ChannelMapping/Channel[@default="true"]
+						return <ChannelName ID="{data($Channel/@ID)}">{$Channel/ChannelName/text()}</ChannelName>
+  let $VideoKeyWordInspec    	:= $VideoXml/VideoInspec
+  let $Events := $VideoXml/Events
+  let $SeriesList := $VideoXml/SeriesList
+  let $Transcripts := <Transcripts>{$VideoXml/AdvanceInfo/Transcripts/Transcript[@active eq "yes"]}</Transcripts>
+  let $IETDigitalLibrary := <IETDigitalLibrary>{$VideoXml/IETDigitalLibrary/DOI}</IETDigitalLibrary>
+  return
+  if( $VideoXml )
+      then
+        <Video ID="{fn:data($VideoXml/@ID)}">{$VideoNumber}
+        <BasicInfo>{$Pricing,$Promo,$Copyright}</BasicInfo>
+         <ThumbnailFilepath></ThumbnailFilepath>
+            {
+              $VideoXml/Speakers,
+              $BasicInfo/Title,
+              $BasicInfo/Abstract,
+              $VideoXml//URL,
+              $BasicInfo/ShortDescription,
+              $PublishInfo,
+			  $Duration,
+              $BasicInfo/ChannelMapping,
+              $ChannelName,
+              $Attachment,
+			  $BasicInfo/VideoCategory,
+			  $BasicInfo/VideoCreatedDate,
+			  GetRelatedContent(fn:data($VideoXml/@ID))
+            }
+            <VideoDescription>{$BasicInfo/ShortDescription/text()}</VideoDescription>
+            {$BasicInfo/PromoDetails}
+            <LastViewedDate></LastViewedDate>
+            <UKstreamID>{data($VideoXml//UploadVideo/File/@streamID)}</UKstreamID>
+            <Keywords>{for $EachKeyWord in $VideoXml//DefaultKeyword return $EachKeyWord}</Keywords>
+			<CustomKeywords>{for $EachKeyWord in $VideoXml//CustomKeyword return $EachKeyWord}</CustomKeywords>
+            {$Permission,$VideoKeyWordInspec,$Events,$SeriesList,$Transcripts,$IETDigitalLibrary}
         </Video>
       else
         "NONE"
@@ -421,18 +510,30 @@ declare function GetVideoActionProperty($ActionUri,$UserID,$UserEmail,$UserIP)
 {
 	let $GetActionDoc := doc($ActionUri)
 	let $CurrentView := $GetActionDoc/VideoAction/Views/text()
-	let $LiveCurrentView := $GetActionDoc/VideoAction/LiveViews/text()
-	(: let $LiveCurrentView := $GetActionDoc/VideoAction/LiveViews/text() :)
 	let $CurrentLike := count($GetActionDoc/VideoAction/User/Action[.='Like'])
 	let $CurrentDisLike := count($GetActionDoc/VideoAction/User/Action[.='Dislike'])
-	(:let $Log := xdmp:log($GetActionDoc):)
 	let $UserAction := $GetActionDoc/VideoAction/User[UserID=$UserID][UserIP=$UserIP][Email=$UserEmail]/Action/text()
 	return 
 	(
 		<User><Action>{$UserAction}</Action></User>,
 		<Likes>{$CurrentLike}</Likes>,
 		<DisLikes>{$CurrentDisLike}</DisLikes>,
-		<Views>{if($CurrentView) then $CurrentView else "0"}</Views>,
+		<Views>{if($CurrentView) then $CurrentView else "0"}</Views>
+	)
+};
+
+declare function GetVideoActionLiveProperty($ActionUri,$UserID,$UserEmail,$UserIP)
+{
+	let $GetActionDoc := doc($ActionUri)
+	let $LiveCurrentView := $GetActionDoc/VideoAction/LiveViews/text()
+	let $CurrentLike := count($GetActionDoc/VideoAction/User/Action[.='Like'])
+	let $CurrentDisLike := count($GetActionDoc/VideoAction/User/Action[.='Dislike'])
+	let $UserAction := $GetActionDoc/VideoAction/User[UserID=$UserID][UserIP=$UserIP][Email=$UserEmail]/Action/text()
+	return 
+	(
+		<LiveUser><Action>{$UserAction}</Action></LiveUser>,
+		<LiveLikes>{$CurrentLike}</LiveLikes>,
+		<LiveDisLikes>{$CurrentDisLike}</LiveDisLikes>,
 		<LiveViews>{if($LiveCurrentView) then $LiveCurrentView else "0"}</LiveViews>
 	)
 };
