@@ -1343,10 +1343,10 @@ declare function GetVideoBySeries($SkipChannel as item(),$SeriesID as xs:string,
                               then	<sort-order type="xs:string" collation="http://marklogic.com/collation/" direction="descending"><field name="VideoTitle"/></sort-order>
 							  else
 							  if( $SortBy eq "Recent" )
-                              then	<sort-order type="xs:string" collation="http://marklogic.com/collation/" direction="descending"><element ns="" name="FinalStartDate"/></sort-order> 
+                              then	<sort-order type="xs:dateTime" direction="descending"><element ns="" name="FinalStartDate"/></sort-order> 
 							  else
 							  if( $SortBy eq "Oldest" )
-                              then	<sort-order type="xs:string" collation="http://marklogic.com/collation/" direction="ascending"><element ns="" name="FinalStartDate"/></sort-order> 
+                              then	<sort-order type="xs:dateTime" direction="ascending"><element ns="" name="FinalStartDate"/></sort-order> 
 							  else()
 							}
 							<constraint name="SeriesID">
@@ -1455,6 +1455,8 @@ declare function GetVideoDetailsByEvent($SkipChannel as item(),$EventID as xs:st
 																	   [AdvanceInfo/PermissionDetails/Permission[@type eq "HideRecord" and @status eq "no"]]
 																	   [(PublishInfo/VideoPublish/FinalExpiryDate  ge fn:current-dateTime()) or
 																	   (PublishInfo/VideoPublish/FinalExpiryDate eq xs:dateTime("1900-01-01T00:00:00.0000"))]
+																	   [(PublishInfo/LivePublish/LiveFinalExpiryDate  ge fn:current-dateTime()) or
+																	   (PublishInfo/LivePublish/LiveFinalExpiryDate eq xs:dateTime("1900-01-01T00:00:00.0000"))]
                                                                                       ,
                                               cts:and-query(( cts:element-attribute-value-query(xs:QName("Event"),xs:QName("ID"),$EventID),
                                                               cts:element-range-query(xs:QName("StartDate"),">=",$StartDate),
@@ -1466,6 +1468,8 @@ declare function GetVideoDetailsByEvent($SkipChannel as item(),$EventID as xs:st
 						cts:search(fn:collection($constants:PCOPY)/Video[AdvanceInfo/PermissionDetails/Permission[@type eq "HideRecord" and @status eq "no"]]
 																	   [(PublishInfo/VideoPublish/FinalExpiryDate  ge fn:current-dateTime()) or
 																	   (PublishInfo/VideoPublish/FinalExpiryDate eq xs:dateTime("1900-01-01T00:00:00.0000"))]
+																	   [(PublishInfo/LivePublish/LiveFinalExpiryDate  ge fn:current-dateTime()) or
+																	   (PublishInfo/LivePublish/LiveFinalExpiryDate eq xs:dateTime("1900-01-01T00:00:00.0000"))]
                                                                                       ,
                                               cts:and-query(( cts:element-attribute-value-query(xs:QName("Event"),xs:QName("ID"),$EventID),
                                                               cts:element-range-query(xs:QName("StartDate"),">=",$StartDate),
