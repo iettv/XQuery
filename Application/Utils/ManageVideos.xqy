@@ -454,6 +454,58 @@ declare function GetVideoDetailsByID( $videoID as xs:string, $UserID as xs:strin
         "NONE"
 };
 
+declare function GetVideoDetailsByID( $videoID as xs:string)
+{
+  let $VideoXml 	:= fn:doc(fn:concat($constants:VIDEO_DIRECTORY,$videoID,'.xml'))/Video
+  let $VideoNumber 	:= $VideoXml/VideoNumber
+  let $BasicInfo 	:= $VideoXml/BasicInfo
+  let $Pricing		:= $BasicInfo/PricingDetails
+  let $Copyright 	:= $BasicInfo/CopyrightDetails
+  let $Promo 		:= $BasicInfo/PromoDetails
+  let $Permission 	:= $VideoXml/AdvanceInfo/PermissionDetails
+  let $PublishInfo 	:= $VideoXml/PublishInfo
+  let $Duration 	:= $VideoXml/UploadVideo/File/Duration
+  let $Attachment 	:= $VideoXml/Attachments
+  let $ChannelName 	:= let $Channel := $VideoXml/BasicInfo/ChannelMapping/Channel[@default="true"]
+						return <ChannelName ID="{data($Channel/@ID)}">{$Channel/ChannelName/text()}</ChannelName>
+  let $VideoKeyWordInspec    	:= $VideoXml/VideoInspec
+  let $Events := $VideoXml/Events
+  let $SeriesList := $VideoXml/SeriesList
+  let $Transcripts := <Transcripts>{$VideoXml/AdvanceInfo/Transcripts/Transcript[@active eq "yes"]}</Transcripts>
+  let $IETDigitalLibrary := <IETDigitalLibrary>{$VideoXml/IETDigitalLibrary/DOI}</IETDigitalLibrary>
+  return
+  if( $VideoXml )
+      then
+        <Video ID="{fn:data($VideoXml/@ID)}">{$VideoNumber}
+        <BasicInfo>{$Pricing,$Promo,$Copyright}</BasicInfo>
+         <ThumbnailFilepath></ThumbnailFilepath>
+            {
+              $VideoXml/Speakers,
+              $BasicInfo/Title,
+              $BasicInfo/Abstract,
+              $VideoXml//URL,
+              $BasicInfo/ShortDescription,
+              $PublishInfo,
+			  $Duration,
+              $BasicInfo/ChannelMapping,
+              $ChannelName,
+              $Attachment,
+			  $BasicInfo/VideoCategory,
+			  $BasicInfo/VideoCreatedDate,
+			  GetRelatedContent(fn:data($VideoXml/@ID))
+            }
+            <VideoDescription>{$BasicInfo/ShortDescription/text()}</VideoDescription>
+            {$BasicInfo/PromoDetails}
+            <LastViewedDate></LastViewedDate>
+            <UKstreamID>{data($VideoXml//UploadVideo/File/@streamID)}</UKstreamID>
+            <Keywords>{for $EachKeyWord in $VideoXml//DefaultKeyword return $EachKeyWord}</Keywords>
+			<CustomKeywords>{for $EachKeyWord in $VideoXml//CustomKeyword return $EachKeyWord}</CustomKeywords>
+            {$Permission,$VideoKeyWordInspec,$Events,$SeriesList,$Transcripts,$IETDigitalLibrary}
+        </Video>
+      else
+        "NONE"
+};
+
 declare function GetVideoActionProperty($ActionUri,$UserID,$UserEmail,$UserIP)
 {
 	let $GetActionDoc := doc($ActionUri)

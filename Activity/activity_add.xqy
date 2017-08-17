@@ -33,7 +33,7 @@ let $ActionType 	:= if ($ActivityXML/Activity/Action/Type/string()) then ($Activ
 let $VideoID 		:= if ($ActivityXML/Activity/EntityID/string())
                        then ($ActivityXML/Activity/EntityID/string())
                        else 
-                            if (($ActivityXML/Activity/Action/ActivityType[text()='WebPortal']) and not($ActivityXML/Activity/Action/Type[string()=('Content Access','Search','Login','Logout')]))
+                            if ($ActivityXML/Activity/Action/ActivityType[text()='WebPortal'])
                             then (xdmp:log(concat("[ IET-TV ][ ActivityIngestion ][ WebPortal Activity ][ Video Id Empty ]")))
                             else ()
 let $Video_ID 		:= if ($ActivityXML/Activity/EntityID/string()) then ($ActivityXML/Activity/EntityID/string()) else ()
@@ -43,7 +43,8 @@ let $Channel 		:= let $IsChannel := $ActivityXML/Activity/Action/AdditionalInfo/
 let $ActivityURI  	:= fn:concat("/",$CurrentYear,"/",$CurrentQuarter,"/",$CurrentMonth,"/",$ActionType,"/",$ActivityID,".xml")
 let $platform 		:= $ActivityXML//PlatformID/string()
 let $Type     		:= $ActivityXML//Action/ActivityType/string()
-let $InsertActivity := if (($ActivityXML//Action/AdditionalInfo/NameValue[matches(Name,('VideoTitle','Duration','SubscriptionType'))]/Value[.=''])[1])
+let $InsertActivity := if ((($ActivityXML//Action/AdditionalInfo/NameValue[matches(Name,'VideoTitle')]/Value[.=''])[1]) or (($ActivityXML//Action/AdditionalInfo/NameValue[matches(Name,'Duration')]/Value[.=''])[1])
+                            or (($ActivityXML//Action/AdditionalInfo/NameValue[matches(Name,'SubscriptionType')]/Value[.=''])[1]))
                        then
                                             let $GetMasterXML          := local:GetXMLFile($Video_ID)
                                             let $UpdatedXML1           := if (($ActivityXML//Action/AdditionalInfo/NameValue[matches(Name,'VideoTitle')]/Value[.=''])[1])
@@ -70,12 +71,11 @@ let $InsertActivity := if (($ActivityXML//Action/AdditionalInfo/NameValue[matche
                                             return
                                                    $UpdatedXML3
                        else ($ActivityXML)
-
 return 
   
   try
     {(
-        xdmp:document-insert($ActivityURI,$ActivityXML,(), ($VideoID, $Channel, $platform, $Type)),
+        xdmp:document-insert($ActivityURI,$InsertActivity,(), ($VideoID, $Channel, $platform, $Type)),
         "SUCCESS",
         xdmp:log(concat("[ IET-TV ][ ActivityIngestion ][ SUCCESS ][ Activity has been logged successfully!!! URI : ",$ActivityURI, " ]"))
     )}
