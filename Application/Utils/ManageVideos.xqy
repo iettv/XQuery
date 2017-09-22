@@ -12,6 +12,22 @@ import module namespace mem       = "http://xqdev.com/in-mem-update"     at  "/M
    Program will go from current date and check RecordStartDate if it is previous date, fatch out the result.
 :)
 
+declare function VIDEOS:VideoInSpec($URI as xs:string , $VideoInSpec as item(), $VideoID as xs:string)
+{
+  
+  let $VideoInSpec :=  if(doc-available($URI))
+                       then
+                             if(doc($URI)/Video/IETTV-Inspec)
+                       		 then (xdmp:node-replace(doc($URI)/Video/IETTV-Inspec,$VideoInSpec),"SUCCESS")
+                       		 else (xdmp:node-insert-after(doc($URI)/Video/Attachments,$VideoInSpec),"SUCCESS")
+                       else
+                             ("ERROR: Video ID does not exist for InSpec",
+                             xdmp:log(concat("[ VideoInSpecChunk ][ ERROR ][ Invalid Video ID: ",$VideoID, "]")))
+  return
+        $VideoInSpec
+};
+
+
 declare function VIDEOS:AddInspecAbstract($VideoXml as item())
 {
   let $Title            := $VideoXml/Video/BasicInfo/Title/string()
@@ -414,7 +430,7 @@ declare function GetVideoDetailsByID( $videoID as xs:string, $UserID as xs:strin
   let $Attachment 	:= $VideoXml/Attachments
   let $ChannelName 	:= let $Channel := $VideoXml/BasicInfo/ChannelMapping/Channel[@default="true"]
 						return <ChannelName ID="{data($Channel/@ID)}">{$Channel/ChannelName/text()}</ChannelName>
-  let $VideoKeyWordInspec    	:= $VideoXml/VideoInspec
+  let $VideoKeyWordInspec    	:= $VideoXml/IETTV-Inspec
   let $Events := $VideoXml/Events
   let $SeriesList := $VideoXml/SeriesList
   let $Transcripts := <Transcripts>{$VideoXml/AdvanceInfo/Transcripts/Transcript[@active eq "yes"]}</Transcripts>
@@ -468,7 +484,7 @@ declare function GetVideoDetailsByID( $videoID as xs:string)
   let $Attachment 	:= $VideoXml/Attachments
   let $ChannelName 	:= let $Channel := $VideoXml/BasicInfo/ChannelMapping/Channel[@default="true"]
 						return <ChannelName ID="{data($Channel/@ID)}">{$Channel/ChannelName/text()}</ChannelName>
-  let $VideoKeyWordInspec    	:= $VideoXml/VideoInspec
+  let $VideoKeyWordInspec    	:= $VideoXml/IETTV-Inspec
   let $Events := $VideoXml/Events
   let $SeriesList := $VideoXml/SeriesList
   let $Transcripts := <Transcripts>{$VideoXml/AdvanceInfo/Transcripts/Transcript[@active eq "yes"]}</Transcripts>
