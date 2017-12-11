@@ -31,6 +31,7 @@ let $PageLength 	:= xs:integer($InputParam/SearchUserVideo/PageLength/text())
 let $StartPage 		:= xs:integer($InputParam/SearchUserVideo/StartPage/text())
 let $Sorting 		:= $InputParam/SearchUserVideo/SortBy/text()
 let $SkipChannel    := $InputParam/SearchUserVideo/SkipChannel
+let $Transcript   := $InputParam/SearchUserVideo/Transcript/text()
 return
   if( not($SkipChannel//text()) )
   then
@@ -81,6 +82,6 @@ return
     )
   else
 	 (
-		LOOKUP:VideoSearch($SkipChannel,$TextToSearch,$TermToSearch,$PageLength,$StartPage,$Sorting),
+		LOOKUP:VideoSearch($SkipChannel,$TextToSearch,$TermToSearch,$PageLength,$StartPage,$Sorting,$Transcript),
 		xdmp:log("[ IET-TV ][ VideoSearch ][ Call ][ Service result sent ]")
 	)

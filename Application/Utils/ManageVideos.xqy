@@ -12,6 +12,33 @@ import module namespace mem       = "http://xqdev.com/in-mem-update"     at  "/M
    Program will go from current date and check RecordStartDate if it is previous date, fatch out the result.
 :)
 
+declare function VIDEOS:VideoCount() as item()
+{
+let $VideoCount := count(cts:search(doc()/Video[contains(base-uri(),'PCopy')],()))
+let $VideoTranscriptCount := count(cts:search(doc()/Video[contains(base-uri(),'PCopy')][AdvanceInfo/Subtitles/Subtitle[@active='yes']],()))
+let $VideoCountXml  := <Video>
+                            <VideoCount>{$VideoCount}</VideoCount>
+                            <VideoTranscriptCount>{$VideoTranscriptCount}</VideoTranscriptCount>
+                       </Video>
+return 
+        $VideoCountXml
+};
+
+
+declare function VIDEOS:VideoInSpec($URI as xs:string , $VideoInSpec as item(), $VideoID as xs:string)
+{
+  let $VideoInSpec :=  if(doc-available($URI))
+                       then
+                             if(doc($URI)/Video/IETTV-Inspec)
+                       		 then (xdmp:node-replace(doc($URI)/Video/IETTV-Inspec,$VideoInSpec),"SUCCESS")
+                       		 else (xdmp:node-insert-after(doc($URI)/Video/Attachments,$VideoInSpec),"SUCCESS")
+                       else
+                             ("ERROR: Video ID does not exist for InSpec",
+                             xdmp:log(concat("[ VideoInSpecChunk ][ ERROR ][ Invalid Video ID: ",$VideoID, "]")))
+  return
+         $VideoInSpec
+};
+
 declare function VIDEOS:AddInspecAbstract($VideoXml as item())
 {
   let $Title            := $VideoXml/Video/BasicInfo/Title/string()
@@ -108,82 +135,95 @@ declare function VIDEOS:RangeDateRecordProcessing($DateType as xs:string,$VideoT
 };
 
 
-declare function VIDEOS:AddSubtitleTranscript($VideoChunk as item())
+
+declare function VIDEOS:AddSubtitle($VideoChunk as item(), $VideoXmlPC as item(), $VideoXmlDR as item())
 { 
   let $VideoID      := $VideoChunk/Video/GUID
   let $Subtitle     := $VideoChunk/Video/Subtitle
+  let $SubtitleLanguage    := $VideoChunk/Video/Subtitle/Language/text()
+  
+  return
+            
+                      (
+                        (
+                          if ($VideoXmlPC/AdvanceInfo/Subtitles/Subtitle[@active='yes'][fn:matches(Language/text(),fn:normalize-space($SubtitleLanguage))])
+                          then 
+                                    ( 
+                                      (xdmp:node-replace($VideoXmlPC/AdvanceInfo/Subtitles/Subtitle[@active='yes'][Language/text()=$SubtitleLanguage],$Subtitle)),
+                                      xdmp:log(concat("[ IET-TV ][ AddSubtitle ][ INFO ][ Added Subtitle (PCopy) ] VideoId: ",$VideoID)),
+									  "Success"
+                                    )
+                          else if (not($VideoXmlPC/AdvanceInfo/Subtitles/Subtitle[Language=$SubtitleLanguage]))
+                          then (xdmp:node-insert-child($VideoXmlPC/AdvanceInfo/Subtitles,$Subtitle),"Success")
+                          else (xdmp:log(concat("[ IET-TV ][ AddSubtitle ][ INFO ][ Video XML Not Available (PCopy) ] VideoId: ",$VideoID)), "Failed")
+                         )
+                         ,
+                         (
+                          if ($VideoXmlDR/AdvanceInfo/Subtitles/Subtitle[@active='yes'][fn:matches(Language/text(),fn:normalize-space($SubtitleLanguage))])
+                          then 
+                                    ( 
+                                      (xdmp:node-replace($VideoXmlDR/AdvanceInfo/Subtitles/Subtitle[@active='yes'][Language/text()=$SubtitleLanguage],$Subtitle)),
+                                      xdmp:log(concat("[ IET-TV ][ AddSubtitle ][ INFO ][ Added Subtitle (Draft) ] VideoId: ",$VideoID)),
+									  "Success"
+                                    )
+                          else if (not($VideoXmlDR/AdvanceInfo/Subtitles/Subtitle[Language=$SubtitleLanguage]))
+                          then (xdmp:node-insert-child($VideoXmlDR/AdvanceInfo/Subtitles,$Subtitle),"Success")
+                          else (xdmp:log(concat("[ IET-TV ][ AddSubtitle ][ INFO ][ Video XML Not Available (Draft) ] VideoId: ",$VideoID)), "Failed")
+                          )
+                      )
+};
+
+declare function VIDEOS:AddTranscript($VideoChunk as item(), $VideoXmlPC as item(), $VideoXmlDR as item())
+{ 
+  let $VideoID      := $VideoChunk/Video/GUID
   let $Transcript   := $VideoChunk/Video/Transcript
+  let $TranscriptLanguage    := $VideoChunk/Video/Transcript/Language/text()
+  return
+                      (
+                        (
+                          if ($VideoXmlPC/AdvanceInfo/Transcripts/Transcript[@active='yes'][fn:matches(Language/text(),fn:normalize-space($TranscriptLanguage))])
+                          then 
+                                    ( 
+                                      (xdmp:node-replace($VideoXmlPC/AdvanceInfo/Transcripts/Transcript[@active='yes'][Language/text()=$TranscriptLanguage],$Transcript)),
+                                      xdmp:log(concat("[ IET-TV ][ AddTranscript ][ INFO ][ Added Transcript (PCopy) ] VideoId: ",$VideoID)),
+									  "Success"
+                                    )
+                          else if (not($VideoXmlPC/AdvanceInfo/Transcripts/Transcript[Language=$TranscriptLanguage]))
+                          then (xdmp:node-insert-child($VideoXmlPC/AdvanceInfo/Transcripts,$Transcript),"Success")
+                          else (xdmp:log(concat("[ IET-TV ][ AddTranscript ][ INFO ][ Video XML Not Available (PCopy) ] VideoId: ",$VideoID)), "Failed")
+                         )
+                            ,
+                          (
+                              if ($VideoXmlDR/AdvanceInfo/Transcripts/Transcript[@active='yes'][fn:matches(Language/text(),fn:normalize-space($TranscriptLanguage))])
+                          then 
+                                    ( 
+                                      (xdmp:node-replace($VideoXmlDR/AdvanceInfo/Transcripts/Transcript[@active='yes'][Language/text()=$TranscriptLanguage],$Transcript)),
+                                      xdmp:log(concat("[ IET-TV ][ AddTranscript ][ INFO ][ Added Transcript (Draft) ] VideoId: ",$VideoID)),
+									  "Success"
+                                    )
+                          else if (not($VideoXmlDR/AdvanceInfo/Transcripts/Transcript[Language=$TranscriptLanguage]))
+                          then (xdmp:node-insert-child($VideoXmlDR/AdvanceInfo/Transcripts,$Transcript),"Success")
+                          else (xdmp:log(concat("[ IET-TV ][ AddTranscript ][ INFO ][ Video XML Not Available (Draft) ] VideoId: ",$VideoID)), "Failed")
+                          )
+                      )
+            
+};
+
+declare function VIDEOS:AddSubtitleTranscript($VideoChunk as item())
+{ 
+  let $VideoID      := $VideoChunk/Video/GUID
   let $VideoXmlPC 	:= doc(fn:concat($constants:PCOPY_DIRECTORY,$VideoID,'.xml'))/Video
   let $VideoXmlDR 	:= doc(fn:concat($constants:VIDEO_DIRECTORY,$VideoID,'.xml'))/Video
-  let $SubtitleActivePC    := $VideoXmlPC/AdvanceInfo/Subtitles/Subtitle/@active
-  let $SubtitleActiveDR    := $VideoXmlDR/AdvanceInfo/Subtitles/Subtitle/@active
-  let $TranscriptActivePC    := $VideoXmlPC/AdvanceInfo/Transcripts/Transcript/@active
-  let $TranscriptActiveDR    := $VideoXmlDR/AdvanceInfo/Transcripts/Transcript/@active
-  let $newActive    := attribute active {'no'}
- 
   return
-             if($VideoChunk/Video/Subtitle)
-             then
-                      (
-                        (
-                          if ($VideoXmlPC/AdvanceInfo/Subtitles/Subtitle[@active='yes'])
-                          then 
-                                    ( 
-                                      (xdmp:node-replace($SubtitleActivePC, $newActive)),
-                                      (xdmp:node-insert-child($VideoXmlPC/AdvanceInfo/Subtitles,$Subtitle)),
-                                      xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Added Subtitle (Draft) ] VideoId: ",$VideoID)),
-									  "Success"
-                                    )
-                          else if (($VideoXmlPC/AdvanceInfo/Subtitles/Subtitle[@active='no']) or not($VideoXmlPC/AdvanceInfo/Subtitles/Subtitle))
-                          then (xdmp:node-insert-child($VideoXmlPC/AdvanceInfo/Subtitles,$Subtitle),"Success")
-                           else (xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Video XML Not Available (PCopy) ] VideoId: ",$VideoID)), "Failed")
-                         )
-                            ,
-                          (
-                              if ($VideoXmlDR/AdvanceInfo/Subtitles/Subtitle[@active='yes'])
-                              then 
-                                    ( 
-                                      (xdmp:node-replace($SubtitleActiveDR, $newActive)),
-                                      (xdmp:node-insert-child($VideoXmlDR/AdvanceInfo/Subtitles,$Subtitle)),
-                                      xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Added Subtitle (Draft) ] VideoId: ",$VideoID)),
-									  "Success"
-                                    )
-                              else if (($VideoXmlDR/AdvanceInfo/Subtitles/Subtitle[@active='no']) or not($VideoXmlDR/AdvanceInfo/Subtitles/Subtitle))
-                              then (xdmp:node-insert-child($VideoXmlDR/AdvanceInfo/Subtitles,$Subtitle),"Success")
-                              else (xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Video XML Not Available (Draft) ] VideoId: ",$VideoID)), "Failed")
-                          )
-                      )
-                      
+             if(($VideoChunk/Video/Subtitle) and ($VideoChunk/Video/Transcript))
+             then  ((VIDEOS:AddSubtitle($VideoChunk,$VideoXmlPC,$VideoXmlDR)) , (VIDEOS:AddTranscript($VideoChunk,$VideoXmlPC,$VideoXmlDR)))
+             
+             else if($VideoChunk/Video/Subtitle)
+             then  VIDEOS:AddSubtitle($VideoChunk,$VideoXmlPC,$VideoXmlDR)
+             
              else if($VideoChunk/Video/Transcript)
-             then
-                      (
-                        (
-                          if ($VideoXmlPC/AdvanceInfo/Transcripts/Transcript[@active='yes'])
-                          then 
-                                ( 
-                                  (xdmp:node-insert-child($VideoXmlPC/AdvanceInfo/Transcripts,$Transcript)),
-                                  (xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Added Transcript (PCopy) ] VideoId: ",$VideoID)),
-								  "Success")
-                                )
-                          else if (($VideoXmlPC/AdvanceInfo/Transcripts/Transcript[@active='no']) or not($VideoXmlPC/AdvanceInfo/Transcripts/Transcript))
-                          then (xdmp:node-insert-child($VideoXmlPC/AdvanceInfo/Transcripts,$Transcript),"Success")
-                          else (xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Video XML Not Available (PCopy) ] VideoId: ",$VideoID)), "Failed")
-                           
-                         )
-                            ,
-                          (
-                            if ($VideoXmlDR/AdvanceInfo/Transcripts/Transcript[@active='yes'])
-                            then 
-                                ( 
-                                  (xdmp:node-insert-child($VideoXmlDR/AdvanceInfo/Transcripts,$Transcript)),
-                                  (xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Added Transcript (PCopy) ] VideoId: ",$VideoID)),
-								  "Success")
-                                )
-                            else if (($VideoXmlDR/AdvanceInfo/Transcripts/Transcript[@active='no']) or not($VideoXmlDR/AdvanceInfo/Transcripts/Transcript))
-                            then (xdmp:node-insert-child($VideoXmlDR/AdvanceInfo/Transcripts,$Transcript),"Success")
-                            else (xdmp:log(concat("[ IET-TV ][ AddSubtitleTranscript ][ INFO ][ Video XML Not Available (Draft) ] VideoId: ",$VideoID)), "Failed")
-                          )
-                      )
+             then VIDEOS:AddTranscript($VideoChunk,$VideoXmlPC,$VideoXmlDR)
+                      
              else (xdmp:log(concat("Please Provide Subtitle Or Transcript Element In Input Video XML -- VideoId: ",$VideoID)), "Failed")
 };
 
@@ -414,12 +454,30 @@ declare function GetVideoDetailsByID( $videoID as xs:string, $UserID as xs:strin
   let $Attachment 	:= $VideoXml/Attachments
   let $ChannelName 	:= let $Channel := $VideoXml/BasicInfo/ChannelMapping/Channel[@default="true"]
 						return <ChannelName ID="{data($Channel/@ID)}">{$Channel/ChannelName/text()}</ChannelName>
-  let $VideoKeyWordInspec    	:= $VideoXml/VideoInspec
+  let $VideoKeyWordInspec    	:= $VideoXml/IETTV-Inspec
   let $Events := $VideoXml/Events
   let $SeriesList := $VideoXml/SeriesList
   let $Transcripts := <Transcripts>{$VideoXml/AdvanceInfo/Transcripts/Transcript[@active eq "yes"]}</Transcripts>
   let $IETDigitalLibrary := <IETDigitalLibrary>{$VideoXml/IETDigitalLibrary/DOI}</IETDigitalLibrary>
-  return
+  let $IsTranscriptExist := if ($VideoXml/AdvanceInfo/Subtitles/Subtitle[@active='yes']) 
+                            then (<IsSubTitleContentAvailable active="Yes"/>,
+                                  <Subtitles>{
+                                  for $SubTitle in $VideoXml/AdvanceInfo/Subtitles/Subtitle[@active='yes']
+                                      let $Language :=  $SubTitle/Language/text()
+                                      let $FilePath := $SubTitle/FilePath/text()
+                                      let $FileName :=  $SubTitle/FileName
+                                      let $SrtFilePath := concat($FilePath,$FileName)
+                                  return
+                                      (<Subtitle active="yes">
+                                        <Language>{$Language}</Language>
+                                        <SrtFilePath>{$SrtFilePath}</SrtFilePath>
+                                        </Subtitle>)}
+                                   </Subtitles>
+                                   ) 
+                            else (<Subtitles/>)
+ let $Comments := for $CommentCollection in collection(concat('Comment-',$videoID)) return $CommentCollection
+ let $TotalComments := count($Comments)
+ return
   if( $VideoXml )
       then
         <Video ID="{fn:data($VideoXml/@ID)}">{$VideoNumber}
@@ -438,6 +496,7 @@ declare function GetVideoDetailsByID( $videoID as xs:string, $UserID as xs:strin
               $Attachment,
 			  $BasicInfo/VideoCategory,
 			  $BasicInfo/VideoCreatedDate,
+			  $IsTranscriptExist,
 			  GetVideoActionProperty(fn:concat($constants:ACTION_DIRECTORY,$videoID,$constants:SUF_ACTION,".xml"),$UserID,$UserEmail,$UserIP),
 			  GetVideoActionLiveProperty(fn:concat($constants:ACTION_LIVE_DIRECTORY,$videoID,$constants:STUF_ACTION,".xml"),$UserID,$UserEmail,$UserIP),
 			  GetRelatedContent(fn:data($VideoXml/@ID))
@@ -445,6 +504,7 @@ declare function GetVideoDetailsByID( $videoID as xs:string, $UserID as xs:strin
             <VideoDescription>{$BasicInfo/ShortDescription/text()}</VideoDescription>
             {$BasicInfo/PromoDetails}
             <LastViewedDate></LastViewedDate>
+            <CommentCounts>{$TotalComments}</CommentCounts>
             <UKstreamID>{data($VideoXml//UploadVideo/File/@streamID)}</UKstreamID>
             <Keywords>{for $EachKeyWord in $VideoXml//DefaultKeyword return $EachKeyWord}</Keywords>
 			<CustomKeywords>{for $EachKeyWord in $VideoXml//CustomKeyword return $EachKeyWord}</CustomKeywords>
@@ -468,11 +528,29 @@ declare function GetVideoDetailsByID( $videoID as xs:string)
   let $Attachment 	:= $VideoXml/Attachments
   let $ChannelName 	:= let $Channel := $VideoXml/BasicInfo/ChannelMapping/Channel[@default="true"]
 						return <ChannelName ID="{data($Channel/@ID)}">{$Channel/ChannelName/text()}</ChannelName>
-  let $VideoKeyWordInspec    	:= $VideoXml/VideoInspec
+  let $VideoKeyWordInspec    	:= $VideoXml/IETTV-Inspec
   let $Events := $VideoXml/Events
   let $SeriesList := $VideoXml/SeriesList
   let $Transcripts := <Transcripts>{$VideoXml/AdvanceInfo/Transcripts/Transcript[@active eq "yes"]}</Transcripts>
   let $IETDigitalLibrary := <IETDigitalLibrary>{$VideoXml/IETDigitalLibrary/DOI}</IETDigitalLibrary>
+  let $Comments := for $CommentCollection in collection(concat('Comment-',$videoID)) return $CommentCollection
+  let $TotalComments := count($Comments)
+  let $IsTranscriptExist := if ($VideoXml/AdvanceInfo/Subtitles/Subtitle[@active='yes']) 
+                            then (<IsSubTitleContentAvailable active="Yes"/>,
+                                  <Subtitles>{
+                                  for $SubTitle in $VideoXml/AdvanceInfo/Subtitles/Subtitle[@active='yes']
+                                      let $Language :=  $SubTitle/Language/text()
+                                      let $FilePath := $SubTitle/FilePath/text()
+                                      let $FileName :=  $SubTitle/FileName
+                                      let $SrtFilePath := concat($FilePath,$FileName)
+                                  return
+                                      (<Subtitle active="yes">
+                                        <Language>{$Language}</Language>
+                                        <SrtFilePath>{$SrtFilePath}</SrtFilePath>
+                                        </Subtitle>)}
+                                   </Subtitles>
+                                   ) 
+                            else (<Subtitles/>)
   return
   if( $VideoXml )
       then
@@ -492,11 +570,13 @@ declare function GetVideoDetailsByID( $videoID as xs:string)
               $Attachment,
 			  $BasicInfo/VideoCategory,
 			  $BasicInfo/VideoCreatedDate,
+			  $IsTranscriptExist,
 			  GetRelatedContent(fn:data($VideoXml/@ID))
             }
             <VideoDescription>{$BasicInfo/ShortDescription/text()}</VideoDescription>
             {$BasicInfo/PromoDetails}
             <LastViewedDate></LastViewedDate>
+            <CommentCounts>{$TotalComments}</CommentCounts>
             <UKstreamID>{data($VideoXml//UploadVideo/File/@streamID)}</UKstreamID>
             <Keywords>{for $EachKeyWord in $VideoXml//DefaultKeyword return $EachKeyWord}</Keywords>
 			<CustomKeywords>{for $EachKeyWord in $VideoXml//CustomKeyword return $EachKeyWord}</CustomKeywords>
@@ -1144,51 +1224,7 @@ declare function GetRelatedVideos($Videos)
 	else (<Video>No Video Available</Video>,<Video>No Video Available</Video>,<Video>No Video Available</Video>,<Video>No Video Available</Video>)
 	
 };
-(:Old Code:)
-(:
-declare function GetRelatedVideos($Videos)
-{
-	let $RelatedVideos :=   <Videos>
-                            {
-                            let $GetID := if($Videos/Video/@ID)
-                                          then
-                                              
-                                              let $Result := <Videos>{
-                                                                      ( for $value in distinct-values($Videos/Video/@ID)
-                                                                        let $count := count($Videos/Video[@ID eq $value])
-                                                                        order by $count descending
-                                                                        return <Video>{$value}</Video>
-                                                                       ) [position() le 4]
-                                                                      }
-                                                            </Videos>
-                                              return
-                                              if(count($Result/*) le 4)
-                                              then
-                                                for $position in 1 to 4
-                                                let $IsAvailable := $Result//Video[$position]
-                                                return if($IsAvailable) then $IsAvailable else <Video>No Video Available</Video>
-                                              else $Result
-                                              
-                                         else (<Video>No Video Available</Video>,<Video>No Video Available</Video>,<Video>No Video Available</Video>,<Video>No Video Available</Video>)
-                            return $GetID
-                            }
-                            </Videos>
 
-	let $VideoDetails :=
-						  for $EachVideo in $RelatedVideos/Video
-						  return
-						  if(contains($EachVideo/text(),'No Video Available'))
-						  then $EachVideo
-						  else
-							let $VideoDetails := VIDEOS:GetVideoElementForHomePage(doc(concat($constants:PCOPY_DIRECTORY,$EachVideo/text(),".xml"))/Video)
-							return 
-							if($VideoDetails) then $VideoDetails else <Video>No Video Available</Video>
-						
- 
-		return $VideoDetails
-    
-};
-:)
 declare function GetVideoByEvent($EventId as xs:string) as item()*
 {
 	(:let $Log := xdmp:log("****************************************GetVideoByEvent******************"):)
@@ -1228,102 +1264,6 @@ declare function GetVideoByEvent($EventId as xs:string) as item()*
 		"NONE"
 };
 
-(:Old Service:)
-(:
-declare function GetVideoBySeries($SeriesID as xs:string,$StartPage as xs:integer,$PageLength as xs:integer,$SortBy as xs:string) as item()*
-{
-	let $Start := if($StartPage = 1) then $StartPage else sum(($StartPage * $PageLength) - $PageLength + 1)
-	let $End   := fn:sum(xs:integer($Start) + xs:integer($PageLength) - xs:integer(1))
-	(:let $Log := xdmp:log("****************************************GetVideoBySeries******************"):)
-	let $VideoXML := <Videos>
-						{
-						cts:search(fn:collection("PublishedCopy"),cts:element-attribute-value-query(xs:QName("Series"),xs:QName("ID"),$SeriesID))
-						}
-					</Videos>
-	let $VideoCount := count($VideoXML/Video)			
-	let $VideoChunks := if( $VideoXML/Video)
-						then
-						(
-							if($SortBy eq "TitleAscending")
-							then(
-								(
-								for $EachVideo in $VideoXML/Video
-								order by $EachVideo/BasicInfo/Title ascending
-								return
-								VIDEOS:GetVideoElementForHomePage($EachVideo)
-								)[$Start to $End]
-								)
-							else
-							if($SortBy eq "TitleDescending")
-							then(
-								(
-								for $EachVideo in $VideoXML/Video
-								order by $EachVideo/BasicInfo/Title descending
-								return
-								VIDEOS:GetVideoElementForHomePage($EachVideo)
-								)[$Start to $End]
-								)
-							else
-							if($SortBy eq "Recent")
-							then(
-								(
-								for $EachVideo in $VideoXML/Video
-								order by $EachVideo/PublishInfo/VideoPublish/FinalStartDate descending
-								return
-								VIDEOS:GetVideoElementForHomePage($EachVideo)
-								)[$Start to $End]
-								)
-							else
-							if($SortBy eq "Oldest")
-							then(
-								(
-								for $EachVideo in $VideoXML/Video
-								order by $EachVideo/PublishInfo/VideoPublish/FinalStartDate ascending
-								return
-								VIDEOS:GetVideoElementForHomePage($EachVideo)
-								)[$Start to $End]
-								)
-							else
-							if($SortBy eq "Relevance")
-							then(
-								(
-								for $EachVideo in $VideoXML/Video
-								return
-								VIDEOS:GetVideoElementForHomePage($EachVideo)
-								)[$Start to $End]
-								)
-							else
-							if($SortBy eq "Popular")
-							then(
-								let $CurrentMostPopularList :=  VIDEOS:GetCommonPopularFile()
-								let $VideoIDList := <Video>{(for $EachVideos in $VideoXML/Video	return <VideoID>{$EachVideos/@ID/string()}</VideoID>)[$Start to $End]}</Video>
-								let $Videos :=  <Videos>
-												  { 
-												  for $EachVideoID in $CurrentMostPopularList//VideoID/text()
-												  let $Videos := 
-																  if($VideoIDList//VideoID[.=$EachVideoID])
-																  then (xdmp:set($VideoIDList,mem:node-delete($VideoIDList//VideoID[.=$EachVideoID])),<VideoID>{$EachVideoID}</VideoID>)
-																  else ()
-												  return $Videos
-												  }
-												</Videos>
-								let $PopularVideos := 	for $EachVideos in $Videos/VideoID
-														return VIDEOS:GetVideoElementForHomePage(doc(concat("/PCopy/",$EachVideos/text(),".xml"))/Video)
-								let $RemainingVideoID := $VideoIDList
-								let $RemainingPopularVideos := 	for $EachVideos in $RemainingVideoID/VideoID
-																return VIDEOS:GetVideoElementForHomePage(doc(concat("/PCopy/",$EachVideos/text(),".xml"))/Video)
-								return ($PopularVideos,$RemainingPopularVideos)
-								)
-							else ()
-						)
-					else
-						"NONE"
-	return
-		(<Videos><VideoCount>{$VideoCount}</VideoCount>{$VideoChunks}</Videos>)
-};
-:)
-
-
 declare function GetVideoBySeries($SkipChannel as item(),$SeriesID as xs:string,$StartPage as xs:integer,$PageLength as xs:integer,$SortBy as xs:string) as item()*
 {
 
@@ -1343,10 +1283,10 @@ declare function GetVideoBySeries($SkipChannel as item(),$SeriesID as xs:string,
                               then	<sort-order type="xs:string" collation="http://marklogic.com/collation/" direction="descending"><field name="VideoTitle"/></sort-order>
 							  else
 							  if( $SortBy eq "Recent" )
-                              then	<sort-order type="xs:string" collation="http://marklogic.com/collation/" direction="descending"><element ns="" name="FinalStartDate"/></sort-order> 
+                              then	<sort-order type="xs:dateTime" direction="descending"><element ns="" name="FinalStartDate"/></sort-order> 
 							  else
 							  if( $SortBy eq "Oldest" )
-                              then	<sort-order type="xs:string" collation="http://marklogic.com/collation/" direction="ascending"><element ns="" name="FinalStartDate"/></sort-order> 
+                              then	<sort-order type="xs:dateTime" direction="ascending"><element ns="" name="FinalStartDate"/></sort-order> 
 							  else()
 							}
 							<constraint name="SeriesID">
@@ -1455,6 +1395,8 @@ declare function GetVideoDetailsByEvent($SkipChannel as item(),$EventID as xs:st
 																	   [AdvanceInfo/PermissionDetails/Permission[@type eq "HideRecord" and @status eq "no"]]
 																	   [(PublishInfo/VideoPublish/FinalExpiryDate  ge fn:current-dateTime()) or
 																	   (PublishInfo/VideoPublish/FinalExpiryDate eq xs:dateTime("1900-01-01T00:00:00.0000"))]
+																	   [(PublishInfo/LivePublish/LiveFinalExpiryDate  ge fn:current-dateTime()) or
+																	   (PublishInfo/LivePublish/LiveFinalExpiryDate eq xs:dateTime("1900-01-01T00:00:00.0000"))]
                                                                                       ,
                                               cts:and-query(( cts:element-attribute-value-query(xs:QName("Event"),xs:QName("ID"),$EventID),
                                                               cts:element-range-query(xs:QName("StartDate"),">=",$StartDate),
@@ -1466,6 +1408,8 @@ declare function GetVideoDetailsByEvent($SkipChannel as item(),$EventID as xs:st
 						cts:search(fn:collection($constants:PCOPY)/Video[AdvanceInfo/PermissionDetails/Permission[@type eq "HideRecord" and @status eq "no"]]
 																	   [(PublishInfo/VideoPublish/FinalExpiryDate  ge fn:current-dateTime()) or
 																	   (PublishInfo/VideoPublish/FinalExpiryDate eq xs:dateTime("1900-01-01T00:00:00.0000"))]
+																	   [(PublishInfo/LivePublish/LiveFinalExpiryDate  ge fn:current-dateTime()) or
+																	   (PublishInfo/LivePublish/LiveFinalExpiryDate eq xs:dateTime("1900-01-01T00:00:00.0000"))]
                                                                                       ,
                                               cts:and-query(( cts:element-attribute-value-query(xs:QName("Event"),xs:QName("ID"),$EventID),
                                                               cts:element-range-query(xs:QName("StartDate"),">=",$StartDate),
@@ -1481,195 +1425,6 @@ declare function GetVideoDetailsByEvent($SkipChannel as item(),$EventID as xs:st
 	else
 		"No Video Found"
 };
-
-(: local:GetVideoDetailsReport(" ",0,0,xs:dateTime("2015-01-01T00:00:00"),xs:dateTime("2015-01-23T00:00:00")) :)
-(:
-declare function GetVideoDetailsReport($TermToSearch as xs:string, $PageLength as xs:integer, $StartPage as xs:integer, $StartDate as xs:dateTime, $EndDate as xs:dateTime,$TextToSearch as xs:string,$Status as xs:string,$IncludeBlankSpeakerFlag as xs:string) as item()*
-{
-  let $Start := if($StartPage = 1) then $StartPage else fn:sum(($StartPage * $PageLength) - $PageLength + 1)
-	let $SearchOption := <options xmlns="http://marklogic.com/appservices/search">
-							<term>
-								<term-option>case-insensitive</term-option>
-								<term-option>wildcarded</term-option>
-								<term-option>stemmed</term-option>
-								<term-option>diacritic-insensitive</term-option>
-								<term-option>punctuation-insensitive</term-option>
-							</term>
-							<constraint name="Video">
-								<range type="xs:string" facet="true">
-									<facet-option>frequency-order</facet-option>
-									<facet-option>descending</facet-option>
-                  <path-index>Video/@ID</path-index>
-								</range>
-							</constraint>
-              <constraint name="PricingDetails">
-								<range type="xs:string" facet="true">
-									<facet-option>frequency-order</facet-option>
-									<facet-option>descending</facet-option>
-								 <path-index>PricingDetails/@type</path-index>
-								</range>
-							</constraint>
-              <!-- Created By Constraint -->
-              <constraint name="CreationInfo">
-								<range type="xs:string" facet="true">
-									<facet-option>frequency-order</facet-option>
-									<facet-option>descending</facet-option>
-								 <path-index>CreationInfo/Person/@ID</path-index>
-								</range>
-							</constraint>
-              <!-- ModifiedInfo constraint -->
-              <constraint name="ModifiedInfo">
-								<range type="xs:string" facet="true">
-									<facet-option>frequency-order</facet-option>
-									<facet-option>descending</facet-option>
-								 <path-index>ModifiedInfo/Person/@ID</path-index>
-								</range>
-							</constraint>
-			
-      <constraint name="Given-Name">
-								<range type="xs:string" facet="true" collation="http://marklogic.com/collation/en/S1">
-									<facet-option>frequency-order</facet-option>
-									<facet-option>descending</facet-option>
-								 <path-index>Speakers/Person/Name/Given-Name</path-index>
-								</range>
-				</constraint>
-       <constraint name="Surname">
-								<range type="xs:string" facet="true" collation="http://marklogic.com/collation/en/S1">
-									<facet-option>frequency-order</facet-option>
-									<facet-option>descending</facet-option>
-								 <path-index>Speakers/Person/Name/Surname</path-index>
-								</range>
-				</constraint>
-      
-				<constraint name="UploadedBy">
-								<range type="xs:string" facet="true">
-									<facet-option>frequency-order</facet-option>
-									<facet-option>descending</facet-option>
-								 <path-index>UploadVideo/File/Person/@ID</path-index>
-								</range>
-				</constraint>
-        <constraint name="ModifiedDate">
-								<range type="xs:dateTime" facet="true">
-									<facet-option>frequency-order</facet-option>
-									<facet-option>descending</facet-option>
-								 <path-index>ModifiedInfo/Date</path-index>
-								</range>
-				</constraint>
-        
-            
-          		
-						</options>
-  
-  let $ctsQuery := cts:query(search:parse($TermToSearch,$SearchOption,"cts:query"))
-  
-  let $SearchResponse := for $EachVideo in cts:search
-                                    (collection($constants:VIDEO_COLLECTION)/Video,
-                                    cts:and-query((
-                                                  if ($StartDate!=xs:dateTime("1900-01-01T00:00:00") and $EndDate!=xs:dateTime("1900-01-01T00:00:00")) then
-                                                    cts:and-query((
-                                                      cts:path-range-query("ModifiedInfo/Date", ">=", $StartDate),
-                                                      cts:path-range-query("ModifiedInfo/Date", "<=", $EndDate)
-                                                                 )) 
-                                                   else () ,
-                                                   if ($IncludeBlankSpeakerFlag='Yes') 
-                                                   then
-                                                   cts:or-query(
-                                                                  cts:not-query((
-                                                                               cts:element-query( xs:QName("Speakers"), cts:and-query(()) )
-                                                                               ))
-                                                                  
-                                                           )
-                                                  else () ,
-                                                  if (fn:contains($TermToSearch,"ModifiedInfo")) 
-                                                    then
-                                                    cts:and-query(
-                                                                    cts:element-value-query(xs:QName("VideoStatus"),"Published")
-                                                             )
-                                                  else (),
-                                                   if (fn:contains($TermToSearch,"UploadedBy")) 
-                                                    then
-                                                    cts:and-query(
-                                                                    cts:path-range-query("UploadVideo/File/@active","=","Yes")
-                                                                    
-                                                             )
-                                                  else () ,
-                                                   if ($Status="Uploaded") 
-                                                    then
-                                                    cts:and-query(
-                                                                    cts:path-range-query("UploadVideo/File/@active","=","Yes")
-                                                                    
-                                                             )
-                                                  else () ,
-                                                  if ($Status="Published") 
-                                                    then
-                                                    cts:and-query(
-                                                                     cts:element-value-query(xs:QName("VideoStatus"),$Status)
-                                                                    
-                                                             )
-                                                  else (),
-                                                  
-                                                  if ($IncludeBlankSpeakerFlag='Yes') 
-                                                    then
-                                                    cts:or-query(
-                                                                    cts:not-query((
-                                                                                 cts:element-query( xs:QName("Speakers"), cts:and-query(()) )
-                                                                                 ))
-                                                                    
-                                                             )
-                                                  else (),
-                                                  if($TextToSearch!='')
-                                                  then
-                                                    
-                                                      
-                                                        cts:or-query((
-                                                            for $EachTitle in cts:value-match(cts:path-reference('BasicInfo/Title'), fn:concat('*',$TextToSearch,'*'))
-                                                            (: return cts:word-query($EachTitle, ("case-insensitive", "wildcarded", "stemmed", "diacritic-insensitive", "punctuation-insensitive")) :)
-                                                            return cts:field-range-query("VideoTitle","=",$EachTitle)
-                                                          ))
-                                                      
-                                                    
-                                                  else (),
-                                                  $ctsQuery  (:TermToSearch:)
-                                                               
-                                               ))
-                                               ,"unfiltered"
-                                     )
-                               return $EachVideo
-                
-     
-  let $VideoDoc := for $EachVideo in $SearchResponse
-                   
-                   let $VideoID := $EachVideo/@ID
-                   let $IsCommentAvailable := if( collection(fn:concat($constants:COMMENT, fn:data($EachVideo/Video/@ID))) ) then fn:true() else fn:false()
-                   let $VideoComments := fn:collection(concat("Comment-",$VideoID))
-                   let $CommentCount := count($VideoComments/Comment)
-                   return 
-                   
-                   <Video ID="{$VideoID}" comment="{if($IsCommentAvailable=fn:true()) then 'yes' else 'no'}">
-                   { 
-                     $EachVideo/BasicInfo/Title ,
-                     <PriceDetails type="{$EachVideo/BasicInfo/PricingDetails/@type}"/> ,
-                     <CreatedBy>{$EachVideo/CreationInfo/Person/Name}</CreatedBy>,
-                     <ModifiedBy>{$EachVideo/ModifiedInfo/Person/Name}</ModifiedBy>,
-                     <ModifiedDate>{$EachVideo/ModifiedInfo/Date}</ModifiedDate>,
-                     <Speakers>{$EachVideo//Speakers/Person}</Speakers>,
-                     $EachVideo/VideoType,
-                     $EachVideo/BasicInfo/VideoCategory,
-                     $EachVideo/LivePublish,
-                     $EachVideo/BasicInfo/CopyrightDetails,
-                     $EachVideo/AdvanceInfo/Adverts,
-                     $EachVideo/UploadVideo,
-                     $EachVideo/PublishInfo,
-                     $EachVideo/VideoStatus,
-					 $EachVideo/KeyWordInfo/ChannelKeywordList,
-                     <NoOfComments>{$CommentCount}</NoOfComments> 
-                    }
-                   </Video>
-				   
-	  return ($VideoDoc) 
-  
-};
-:)
 
 declare function GetVideoDetailsReport($TermToSearch as xs:string, $PageLength as xs:integer, $StartPage as xs:integer, $StartDate as xs:dateTime, $EndDate as xs:dateTime,$TextToSearch as xs:string,$Status as xs:string,$IncludeBlankSpeakerFlag as xs:string) as item()*
 {

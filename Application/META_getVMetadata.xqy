@@ -12,7 +12,7 @@ return xdmp:document-insert($constants:MURI,<XMLMigration>{$XmlChunk}</XMLMigrat
 
 :)
 (:
-let $Video 				:= (doc($constants:MURI)/XMLMigration/Video[Sent='No' and (Result!="Pass" and Result!="Fail")])[1]
+let $Video 				:= (doc($constants:MURI)/XMLMigration/Video[Sent='No' and (Result!="Pass" and Result!="Fail") and VID != ""])[1]
 let $Log                := xdmp:log("[ IET-TV ][ GetVideoMetadata ][ Service Call!!! ]")
 let $VideoID 			:= $Video/VID/text()
 let $VideoURI 			:= fn:concat($constants:VIDEO_DIRECTORY,$VideoID,".xml")
@@ -33,7 +33,7 @@ return
 	
 :)
 
-let $Video 				:= (doc($constants:MURI)/XMLMigration/Video[Sent='No' and (Result!="Pass" and Result!="Fail")])[1]
+let $Video 				:= (doc($constants:MURI)/XMLMigration/Video[Sent='No' and (Result!="Pass" and Result!="Fail") and VID != ""])[1]
 let $Log                := xdmp:log(concat('[ IET-TV ][ GetVideoMetadata ][ Service Call!!! ][ ', $Video/VID/text(), ' ]'))
 let $VideoID 			:= $Video/VID/text()
 let $PHistoryUri		:= fn:concat($constants:PCOPY_DIRECTORY,$VideoID,".xml")

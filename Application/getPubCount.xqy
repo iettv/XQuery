@@ -1,0 +1,1 @@
+xdmp:estimate(collection("Video"))

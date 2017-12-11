@@ -146,7 +146,7 @@ let $VideoXML           :=	if( ($VideoCurrentStatus != "Draft") and ($IsVideoAva
 								  then mem:node-replace($VideoXML/Video/PublishInfo/LivePublish/DOI, <DOI>{concat($constants:VideoDOI, $VideoNumber)}</DOI>)
 								  else mem:node-insert-child($VideoXML/Video/PublishInfo/LivePublish, <DOI>{concat($constants:VideoDOI, $VideoNumber)}</DOI>)
 							else $VideoXML							
-let $DictionaryAppend   := let $GetWords := for $EarchElement in $VideoXML//*[not(fn:contains(name(), 'Date')) and
+(:let $DictionaryAppend   := let $GetWords := for $EarchElement in $VideoXML//*[not(fn:contains(name(), 'Date')) and
 																			  not(fn:contains(name(), 'Time')) and
 																			  not(fn:contains(name(), 'URL')) and
 																			  not(fn:contains(name(), 'Path')) and
@@ -171,7 +171,7 @@ let $DictionaryAppend   := let $GetWords := for $EarchElement in $VideoXML//*[no
 											return for $Word in $UniqueWords return <word>{$Word}</word>
 						  return
 							  for $EachWord in $GetWords
-							  return try{spell:add-word($constants:DictionaryFile, $EachWord/text())} catch($e){}
+							  return try{spell:add-word($constants:DictionaryFile, $EachWord/text())} catch($e){}:)
 return
   try{(
 	  if( $VideoCurrentStatus="Published" and $VideoXML//VideoType/string()!="Promo" )

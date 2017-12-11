@@ -2,16 +2,16 @@ xquery version "1.0-ml";
 
 declare variable $inputSearchDetails as xs:string external ;
 
-(:let $inputSearchDetails := "<record>
+(: let $inputSearchDetails := "<record>
                                <time>30</time>
-                          </record>":)
+                          </record>" :)
 
 let $input := xdmp:unquote($inputSearchDetails)
 
 let $time := $input/record/time/text()
 
 for $i in doc()/Video
-(:let $i := doc("/PCopy/e49b2f5c-6aff-4c59-a561-1937d95079f0.xml")/Video:)
+
 let $VideoID := $i/@ID/string()
 
 let $duration := $i/UploadVideo/File/Duration/text()
@@ -31,12 +31,12 @@ return if ( xs:integer($duration1) ge 1 or xs:integer($duration2) ge xs:integer(
 				  )
 			else 
 			(
-			   (
 			   if($i/AdvanceInfo/PermissionDetails/Permission[@type='DisplayPolling'])
-			   then xdmp:node-insert-after($i/AdvanceInfo/PermissionDetails/Permission[@type='DisplayPolling'], <Permission type="AddCPDLogo" status="yes"/>)
-			   else xdmp:node-insert-after($i/AdvanceInfo/PermissionDetails/Permission[@type='Discoverable'], <Permission type="AddCPDLogo" status="yes"/>)
-			   ),
-				concat($VideoID,'|')
+			   then (xdmp:node-insert-after($i/AdvanceInfo/PermissionDetails/Permission[@type='DisplayPolling'], <Permission type="AddCPDLogo" status="yes"/>),concat($VideoID,'|'))
+			   else if ($i/AdvanceInfo/PermissionDetails/Permission[@type='Discoverable'])
+			   then (xdmp:node-insert-after($i/AdvanceInfo/PermissionDetails/Permission[@type='Discoverable'], <Permission type="AddCPDLogo" status="yes"/>),concat($VideoID,'|'))
+			   else ()
 			)
 		)
 		else()
+		

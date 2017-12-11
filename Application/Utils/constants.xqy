@@ -77,6 +77,6 @@ declare variable $constants:VideoSequenceUri	as xs:string := "/Admin/Sequence.xm
 declare variable $constants:SkipChannelUri	as xs:string := "/Admin/SkipChannel.xml";
 
 (: VIDEO-DOI/URL :)
-declare variable $constants:VideoURL	as xs:string := "https://iettv-uat.theiet.org/?videoid="; (: LIVE https://tv.theiet.org/?videoid= :)
+declare variable $constants:VideoURL	as xs:string := "http://192.168.2.74/iettvportal/?videoid="; (: LIVE https://tv.theiet.org/?videoid= :)
 declare variable $constants:VideoDOI	as xs:string := "10.1049/iet-tv.vn.";
 declare variable $constants:MURI as xs:string := "/Admin/MetadataUpgrade.xml";
