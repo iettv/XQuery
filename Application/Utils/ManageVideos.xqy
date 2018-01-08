@@ -134,9 +134,7 @@ declare function VIDEOS:RangeDateRecordProcessing($DateType as xs:string,$VideoT
     						
 };
 
-
-
-declare function VIDEOS:AddSubtitle($VideoChunk as item(), $VideoXmlPC as item(), $VideoXmlDR as item())
+declare function VIDEOS:AddSubtitle_PC($VideoChunk as item(), $VideoXmlPC as item())
 { 
   let $VideoID      := $VideoChunk/Video/GUID
   let $Subtitle     := $VideoChunk/Video/Subtitle
@@ -144,8 +142,6 @@ declare function VIDEOS:AddSubtitle($VideoChunk as item(), $VideoXmlPC as item()
   
   return
             
-                      (
-                        (
                           if ($VideoXmlPC/AdvanceInfo/Subtitles/Subtitle[@active='yes'][fn:matches(Language/text(),fn:normalize-space($SubtitleLanguage))])
                           then 
                                     ( 
@@ -156,9 +152,16 @@ declare function VIDEOS:AddSubtitle($VideoChunk as item(), $VideoXmlPC as item()
                           else if (not($VideoXmlPC/AdvanceInfo/Subtitles/Subtitle[Language=$SubtitleLanguage]))
                           then (xdmp:node-insert-child($VideoXmlPC/AdvanceInfo/Subtitles,$Subtitle),"Success")
                           else (xdmp:log(concat("[ IET-TV ][ AddSubtitle ][ INFO ][ Video XML Not Available (PCopy) ] VideoId: ",$VideoID)), "Failed")
-                         )
-                         ,
-                         (
+                        
+};
+
+declare function VIDEOS:AddSubtitle_DR($VideoChunk as item(), $VideoXmlDR as item())
+{ 
+  let $VideoID      := $VideoChunk/Video/GUID
+  let $Subtitle     := $VideoChunk/Video/Subtitle
+  let $SubtitleLanguage    := $VideoChunk/Video/Subtitle/Language/text()
+  
+  return             
                           if ($VideoXmlDR/AdvanceInfo/Subtitles/Subtitle[@active='yes'][fn:matches(Language/text(),fn:normalize-space($SubtitleLanguage))])
                           then 
                                     ( 
@@ -169,18 +172,34 @@ declare function VIDEOS:AddSubtitle($VideoChunk as item(), $VideoXmlPC as item()
                           else if (not($VideoXmlDR/AdvanceInfo/Subtitles/Subtitle[Language=$SubtitleLanguage]))
                           then (xdmp:node-insert-child($VideoXmlDR/AdvanceInfo/Subtitles,$Subtitle),"Success")
                           else (xdmp:log(concat("[ IET-TV ][ AddSubtitle ][ INFO ][ Video XML Not Available (Draft) ] VideoId: ",$VideoID)), "Failed")
-                          )
-                      )
 };
 
-declare function VIDEOS:AddTranscript($VideoChunk as item(), $VideoXmlPC as item(), $VideoXmlDR as item())
+declare function VIDEOS:AddTranscript_DR($VideoChunk as item(), $VideoXmlDR as item())
 { 
   let $VideoID      := $VideoChunk/Video/GUID
   let $Transcript   := $VideoChunk/Video/Transcript
   let $TranscriptLanguage    := $VideoChunk/Video/Transcript/Language/text()
   return
-                      (
-                        (
+                         if ($VideoXmlDR/AdvanceInfo/Transcripts/Transcript[@active='yes'][fn:matches(Language/text(),fn:normalize-space($TranscriptLanguage))])
+                          then 
+                                    ( 
+                                      (xdmp:node-replace($VideoXmlDR/AdvanceInfo/Transcripts/Transcript[@active='yes'][Language/text()=$TranscriptLanguage],$Transcript)),
+                                      xdmp:log(concat("[ IET-TV ][ AddTranscript ][ INFO ][ Added Transcript (Draft) ] VideoId: ",$VideoID)),
+									  "Success"
+                                    )
+                          else if (not($VideoXmlDR/AdvanceInfo/Transcripts/Transcript[Language=$TranscriptLanguage]))
+                          then (xdmp:node-insert-child($VideoXmlDR/AdvanceInfo/Transcripts,$Transcript),"Success")
+                          else (xdmp:log(concat("[ IET-TV ][ AddTranscript ][ INFO ][ Video XML Not Available (Draft) ] VideoId: ",$VideoID)), "Failed")
+                      
+            
+};
+
+declare function VIDEOS:AddTranscript_PC($VideoChunk as item(), $VideoXmlPC as item())
+{ 
+  let $VideoID      := $VideoChunk/Video/GUID
+  let $Transcript   := $VideoChunk/Video/Transcript
+  let $TranscriptLanguage    := $VideoChunk/Video/Transcript/Language/text()
+  return
                           if ($VideoXmlPC/AdvanceInfo/Transcripts/Transcript[@active='yes'][fn:matches(Language/text(),fn:normalize-space($TranscriptLanguage))])
                           then 
                                     ( 
@@ -191,41 +210,39 @@ declare function VIDEOS:AddTranscript($VideoChunk as item(), $VideoXmlPC as item
                           else if (not($VideoXmlPC/AdvanceInfo/Transcripts/Transcript[Language=$TranscriptLanguage]))
                           then (xdmp:node-insert-child($VideoXmlPC/AdvanceInfo/Transcripts,$Transcript),"Success")
                           else (xdmp:log(concat("[ IET-TV ][ AddTranscript ][ INFO ][ Video XML Not Available (PCopy) ] VideoId: ",$VideoID)), "Failed")
-                         )
-                            ,
-                          (
-                              if ($VideoXmlDR/AdvanceInfo/Transcripts/Transcript[@active='yes'][fn:matches(Language/text(),fn:normalize-space($TranscriptLanguage))])
-                          then 
-                                    ( 
-                                      (xdmp:node-replace($VideoXmlDR/AdvanceInfo/Transcripts/Transcript[@active='yes'][Language/text()=$TranscriptLanguage],$Transcript)),
-                                      xdmp:log(concat("[ IET-TV ][ AddTranscript ][ INFO ][ Added Transcript (Draft) ] VideoId: ",$VideoID)),
-									  "Success"
-                                    )
-                          else if (not($VideoXmlDR/AdvanceInfo/Transcripts/Transcript[Language=$TranscriptLanguage]))
-                          then (xdmp:node-insert-child($VideoXmlDR/AdvanceInfo/Transcripts,$Transcript),"Success")
-                          else (xdmp:log(concat("[ IET-TV ][ AddTranscript ][ INFO ][ Video XML Not Available (Draft) ] VideoId: ",$VideoID)), "Failed")
-                          )
-                      )
             
 };
+
 
 declare function VIDEOS:AddSubtitleTranscript($VideoChunk as item())
 { 
   let $VideoID      := $VideoChunk/Video/GUID
   let $VideoXmlPC 	:= doc(fn:concat($constants:PCOPY_DIRECTORY,$VideoID,'.xml'))/Video
   let $VideoXmlDR 	:= doc(fn:concat($constants:VIDEO_DIRECTORY,$VideoID,'.xml'))/Video
+  
   return
-             if(($VideoChunk/Video/Subtitle) and ($VideoChunk/Video/Transcript))
-             then  ((VIDEOS:AddSubtitle($VideoChunk,$VideoXmlPC,$VideoXmlDR)) , (VIDEOS:AddTranscript($VideoChunk,$VideoXmlPC,$VideoXmlDR)))
+             if(($VideoChunk/Video/Subtitle) and ($VideoChunk/Video/Transcript) and ($VideoXmlPC) and ($VideoXmlDR))
+             then  ((VIDEOS:AddSubtitle_PC($VideoChunk,$VideoXmlPC)) ,(VIDEOS:AddSubtitle_DR($VideoChunk,$VideoXmlDR)) ,
+                    (VIDEOS:AddTranscript_PC($VideoChunk,$VideoXmlPC)),(VIDEOS:AddTranscript_DR($VideoChunk,$VideoXmlDR)))
+                    
+             else if(($VideoChunk/Video/Subtitle) and ($VideoChunk/Video/Transcript) and ($VideoXmlDR))
+             then  ((VIDEOS:AddSubtitle_DR($VideoChunk,$VideoXmlDR)) , (VIDEOS:AddTranscript_DR($VideoChunk,$VideoXmlDR)))
              
-             else if($VideoChunk/Video/Subtitle)
-             then  VIDEOS:AddSubtitle($VideoChunk,$VideoXmlPC,$VideoXmlDR)
+             else if(($VideoChunk/Video/Subtitle) and ($VideoXmlPC) and ($VideoXmlDR))
+             then  ((VIDEOS:AddSubtitle_PC($VideoChunk,$VideoXmlPC)) ,(VIDEOS:AddSubtitle_DR($VideoChunk,$VideoXmlDR)))
              
-             else if($VideoChunk/Video/Transcript)
-             then VIDEOS:AddTranscript($VideoChunk,$VideoXmlPC,$VideoXmlDR)
+             else if(($VideoChunk/Video/Subtitle) and ($VideoXmlDR))
+             then  (VIDEOS:AddSubtitle_DR($VideoChunk,$VideoXmlDR))
+             
+             else if(($VideoChunk/Video/Transcript) and ($VideoXmlPC) and ($VideoXmlDR))
+             then ((VIDEOS:AddTranscript_PC($VideoChunk,$VideoXmlPC)),(VIDEOS:AddTranscript_DR($VideoChunk,$VideoXmlDR)))
+             
+             else if(($VideoChunk/Video/Transcript) and ($VideoXmlDR))
+             then (VIDEOS:AddTranscript_DR($VideoChunk,$VideoXmlDR))
                       
              else (xdmp:log(concat("Please Provide Subtitle Or Transcript Element In Input Video XML -- VideoId: ",$VideoID)), "Failed")
 };
+
 
 declare function GetGuIdEntryId($VideoID as xs:string)
 {
