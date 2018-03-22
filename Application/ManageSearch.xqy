@@ -14,13 +14,14 @@ import module namespace mem        = "http://xqdev.com/in-mem-update"          a
 
 (: A new constraint 'Search' has been added to search within "Title,Speaker,Keywords,Description, and Abstract" through Fields :)
 
-declare function VideoSearch($SkipChannel as item(), $TextToSearch as xs:string, $TermToSearch as xs:string, $PageLength as xs:integer, $StartPage as xs:integer, $SortBy as xs:string) as item()
+declare function VideoSearch($SkipChannel as item(), $TextToSearch as xs:string, $TermToSearch as xs:string, $PageLength as xs:integer, $StartPage as xs:integer, $SortBy as xs:string, $Transcript as xs:string) as item()
 {
 	let $IsAuthor     := $TermToSearch
 	
+	let $IsTranscript := $Transcript
+	
 	let $CorrectWord  := if( starts-with($TextToSearch, 'Date:') or fn:starts-with($TextToSearch,'VideoNumber:')) then $TextToSearch else SpellCorrect($TextToSearch)
-	(:let $InactiveChannelConstraint := string-join(for $StaffChannel in doc($constants:MasterChannelUri)//ID/text()[ancestor::Channel/Status='Inactive']
-												  return concat('-ChannelType:',$StaffChannel), ' AND '):)
+	
 	let $SkipChannelConstraint := if( $SkipChannel//text() ne "NONE" )
 								  then
 										string-join(for $StaffChannel in $SkipChannel/ID/text()
@@ -34,32 +35,17 @@ declare function VideoSearch($SkipChannel as item(), $TextToSearch as xs:string,
 							 then fn:concat(fn:concat('author:',fn:replace(substring-after($TextToSearch, 'author:'), ' ','@'), ' OR author:', normalize-space($CorrectWord),'*'), ' (', fn:substring-after($TermToSearch, '('))
 							 else fn:concat('author:',replace(substring-after($TextToSearch, 'author:'), ' ','@'), ' OR author:', normalize-space($CorrectWord),'*')
 						 else
-						(: if( fn:starts-with($TextToSearch,'Date:') )
-						 then
-							if(fn:contains($TermToSearch, '('))
-							then fn:concat('a* (', fn:substring-after($TermToSearch, '('))
-							else 'a*'
-						 else:)
+						
 						 if( fn:starts-with($TextToSearch,'VideoNumber:') or fn:starts-with($TextToSearch,'Date:') )
 						 then $TermToSearch
 						 else
-                            (:							
-							if(fn:contains($TermToSearch, '('))
-							 then
-								if(lower-case($TextToSearch) = lower-case($FilteredTerm))
-								then if($TextToSearch cast as xs:integer) then fn:concat('Search:"', fn:lower-case($TextToSearch), '" OR *', fn:lower-case($TextToSearch), '* (', fn:substring-after($TermToSearch, '(')) else fn:concat('Search:"', fn:lower-case($TextToSearch), '" OR ', fn:lower-case($TextToSearch), ' (', fn:substring-after($TermToSearch, '('))
-								else fn:concat('Search:"', fn:lower-case($TextToSearch), '" OR ', 'Search:"', $FilteredTerm, '" OR *', fn:lower-case($TextToSearch), '* OR *', $FilteredTerm, '* (', fn:substring-after($TermToSearch, '('))
-							 else
-								if(lower-case($TextToSearch) = lower-case($FilteredTerm))
-								then if($TextToSearch cast as xs:integer) then fn:concat('Search:"', fn:lower-case($TextToSearch), '" OR ', fn:lower-case($TextToSearch)) else fn:concat('Search:"', fn:lower-case($TextToSearch), '" OR *', fn:lower-case($TextToSearch), '*')
-								else fn:concat('Search:"', fn:lower-case($TextToSearch), '" OR ', 'Search:"', $FilteredTerm, '" OR *', fn:lower-case($TextToSearch), '* OR *', $FilteredTerm, '*')
-							 :)
 							 if(fn:contains($TermToSearch, '('))
-							 then fn:concat('Search:"', fn:lower-case($TextToSearch), '" OR ', 'Search:"', $FilteredTerm, '" OR *', fn:lower-case($TextToSearch), '* OR *', $FilteredTerm, '* (', fn:substring-after($TermToSearch, '('))
-							 else fn:concat('Search:"', fn:lower-case($TextToSearch), '" OR ', 'Search:"', $FilteredTerm, '" OR *', fn:lower-case($TextToSearch), '* OR *', $FilteredTerm, '*')
-							 
+							 then fn:concat('*',fn:lower-case($TextToSearch), '* OR *', $FilteredTerm, '* (', fn:substring-after($TermToSearch, '('))
+							 else fn:concat('*',fn:lower-case($TextToSearch), '* OR *', $FilteredTerm, '*')
+	let $Ranking     := normalize-space(substring-before(substring-after(tokenize($TermToSearch,' ')[last()],'*'),'*'))
     let $Start := if($StartPage = 1) then $StartPage else fn:sum(($StartPage * $PageLength) - $PageLength + 1)
 	let $SearchOption := <options xmlns="http://marklogic.com/appservices/search">
+	                        <search-option>score-simple</search-option>
 							<term>
 								<term-option>case-insensitive</term-option>
 								<term-option>wildcarded</term-option>
@@ -81,16 +67,16 @@ declare function VideoSearch($SkipChannel as item(), $TextToSearch as xs:string,
                               then	<sort-order type="xs:dateTime" direction="ascending"><element ns="" name="FilteredPubDate"/></sort-order> 
 							  else
 							  if( $SortBy eq "CreatedDes" )
-                              then	<sort-order type="xs:string" collation="http://marklogic.com/collation/" direction="descending"><element ns="" name="VideoCreatedDate"/></sort-order> 
+                              then	<sort-order type="xs:dateTime" direction="descending"><element ns="" name="VideoCreatedDate"/></sort-order> 
 							  else
 							  if( $SortBy eq "CreatedAsc" )
-                              then	<sort-order type="xs:string" collation="http://marklogic.com/collation/" direction="ascending"><element ns="" name="VideoCreatedDate"/></sort-order> 
+                              then	<sort-order type="xs:dateTime" direction="ascending"><element ns="" name="VideoCreatedDate"/></sort-order> 
 							  else
 							  if( $SortBy eq "Popular" )
-                              then	<sort-order type="xs:integer" collation="http://marklogic.com/collation/" direction="descending"><element ns="" name="ViewCount"/></sort-order> 
+                              then	<sort-order type="xs:int" direction="descending"><element ns="" name="ViewCount"/></sort-order> 
 							  else
 							  if( $SortBy eq "Like" )
-                              then	<sort-order type="xs:integer" collation="http://marklogic.com/collation/" direction="descending"><element ns="" name="LikeCount"/></sort-order> 
+                              then	<sort-order type="xs:int" direction="descending"><element ns="" name="LikeCount"/></sort-order> 
 							  else()
 							}
 							<constraint name="PriceType">
@@ -109,11 +95,6 @@ declare function VideoSearch($SkipChannel as item(), $TextToSearch as xs:string,
 									<facet-option>descending</facet-option>
 								</range>
 							</constraint>
-							<!--constraint name="VideoNumber">
-								<range type="xs:int" facet="false">
-									<element ns="" name="VideoNumber"/>
-								</range>
-							</constraint-->
 							<constraint name="VideoNumber">
 								<range collation="http://marklogic.com/collation/" type="xs:string" facet="false">
 									<element ns="" name="VideoNumber"/>
@@ -167,11 +148,6 @@ declare function VideoSearch($SkipChannel as item(), $TextToSearch as xs:string,
 									<facet-option>frequency-order</facet-option>
 									<facet-option>descending</facet-option>
 							   </range>
-							</constraint>
-							<constraint name="Search">
-							  <word>
-								<field name="Search"/>
-							  </word> 
 							</constraint>
 							<constraint name="author">
 								<properties/>
@@ -239,7 +215,36 @@ declare function VideoSearch($SkipChannel as item(), $TextToSearch as xs:string,
 								}
 							</additional-query>
 							{
-							if( starts-with($TextToSearch, 'Date:') )
+							if(contains($IsTranscript,'All_CPD'))
+                  					then
+                  					      <searchable-expression>/Video</searchable-expression>
+							
+							else if(contains($IsTranscript,'Yes'))
+                  					then
+                  					      <additional-query>{
+                  					                             cts:element-word-query(xs:QName("ClosedCaption"),$TextToSearch,("wildcarded","case-insensitive","stemmed","diacritic-insensitive","punctuation-insensitive")) 
+                                                             }
+                                          </additional-query>
+							else if(starts-with($TextToSearch, 'VideoNumber:'))
+							then
+							let $FilterVideoNumber := substring-after($TextToSearch, 'VideoNumber:')
+							return
+		                     <additional-query>{
+                                                 cts:element-word-query(xs:QName("VideoNumber"),$FilterVideoNumber,("wildcarded","case-insensitive","stemmed","diacritic-insensitive","punctuation-insensitive"))
+                                               }
+                              </additional-query>
+                            
+                            else if(starts-with($TextToSearch, 'author:'))
+							then
+							let $FilterSpeaker := lower-case(substring-after($TextToSearch, 'author:'))
+							return
+		                    <additional-query>{
+                                                    cts:and-query(($FilterSpeaker, cts:properties-fragment-query($FilterSpeaker)))
+                                                    
+                                    
+                                     }
+                              </additional-query>
+                            else if( starts-with($TextToSearch, 'Date:') )
 							then
 							let $FilterDate := substring-after($TextToSearch, 'Date:')
 							let $upperlimit := xs:dateTime("0001-01-01T00:00:00.0000")
@@ -266,8 +271,26 @@ declare function VideoSearch($SkipChannel as item(), $TextToSearch as xs:string,
 													))
 									}
 								</additional-query>
-							else ()
-							}
+                              
+                            
+                            else
+                                <additional-query>{
+                                    cts:or-query((
+                                    cts:and-query((lower-case($TextToSearch), cts:properties-fragment-query(lower-case($TextToSearch)))),
+                                    cts:element-word-query(xs:QName("ClosedCaption"),$TextToSearch,("wildcarded","case-insensitive","stemmed","diacritic-insensitive","punctuation-insensitive"), 6),
+                                    cts:element-word-query(xs:QName("Compound-Kwd-Part"),$TextToSearch,("wildcarded","case-insensitive","stemmed","diacritic-insensitive","punctuation-insensitive"), 8),
+                                    cts:element-word-query(xs:QName("Kwd"),$TextToSearch,("wildcarded","case-insensitive","stemmed","diacritic-insensitive","punctuation-insensitive"), 10),
+                                    cts:element-word-query(xs:QName("CustomKeyword"),$TextToSearch,("wildcarded","case-insensitive","stemmed","diacritic-insensitive","punctuation-insensitive"), 12),
+                                    cts:element-word-query(xs:QName("DefaultKeyword"),$TextToSearch,("wildcarded","case-insensitive","stemmed","diacritic-insensitive","punctuation-insensitive"), 14),
+                                    cts:element-word-query(xs:QName("SeriesName"),$TextToSearch,("wildcarded","case-insensitive","stemmed","diacritic-insensitive","punctuation-insensitive"), 16),
+                                    cts:element-word-query(xs:QName("EventName"),$TextToSearch,("wildcarded","case-insensitive","stemmed","diacritic-insensitive","punctuation-insensitive"), 18),
+                                    cts:element-word-query(xs:QName("ShortDescription"),$TextToSearch,("wildcarded","case-insensitive","stemmed","diacritic-insensitive","punctuation-insensitive"), 20),
+                                    cts:element-word-query(xs:QName("Abstract"),$TextToSearch,("wildcarded","case-insensitive","stemmed","diacritic-insensitive","punctuation-insensitive"), 32),
+                                    cts:element-word-query(xs:QName("Title"),$TextToSearch,("wildcarded","case-insensitive","stemmed","diacritic-insensitive","punctuation-insensitive"), 64)
+                                    ))
+                                     }
+                              </additional-query>
+                             }
 							<additional-query>{cts:collection-query($constants:PCOPY)}</additional-query>
 						</options>
 	
@@ -276,9 +299,19 @@ declare function VideoSearch($SkipChannel as item(), $TextToSearch as xs:string,
 								else search:search($TermToSearch, $SearchOption, $Start, $PageLength)
 	let $SearchQueryText 	:= 	<QText>{$FilteredTerm}</QText>
     let $TotalVideoRecord 	:= data($SearchResponse/@total)
-    let $VideoChunksList :=   for $Record in $SearchResponse/search:result
-                              let $VideoXml := fn:doc($Record/@uri/string())
-                              return VIDEOS:GetVideoElementForHomePage($VideoXml/Video)
+    
+    let $SearchString   := if (contains($TextToSearch,':')) then (substring-after($TextToSearch,':')) else ($TextToSearch)
+
+    let $VideoChunksList    := for $Record in $SearchResponse/search:result
+                               let $VideoXml := fn:doc($Record/@uri/string())
+                               let $SearchUri := $Record/@uri/string()
+                               let $CountStringOcr :=  SearchStringCount($SearchString,$SearchUri)
+                               return 
+                                       (VIDEOS:GetVideoElementForHomePage($VideoXml/Video),
+                                        <Transcript VideoId="{$VideoXml/Video/@ID}">{$CountStringOcr}</Transcript>
+                                       )
+    
+   
     
 	let $VideoChunks :=	$VideoChunksList
 	
@@ -393,6 +426,31 @@ declare function SpellCorrect($TextToSearch as xs:string)
 	return if(fn:starts-with($TextToSearch, 'author:')) then replace(lower-case(normalize-space($CorrectWord)),' ','@') else lower-case($CorrectWord)
 };
 
+declare function SearchStringCount($SearchString as xs:string, $SearchUri as xs:string ) 
+{
+        let $TermToSearch := concat('&quot;',$SearchString,'&quot;')
+        let $SearchPath := $SearchUri
+        let $PageLength := 1000
+        let $Start := 1
+        let $SearchOption := <options xmlns="http://marklogic.com/appservices/search">
+        							<term>
+        								<term-option>case-insensitive</term-option>
+        								<term-option>wildcarded</term-option>
+        								<term-option>unstemmed</term-option>
+        								<term-option>diacritic-insensitive</term-option>
+        								<term-option>punctuation-insensitive</term-option>
+        							</term>
+                      <transform-results apply="snippet">
+                              <max-matches>1000</max-matches>
+                      </transform-results>
+                     <searchable-expression>//ClosedCaption</searchable-expression>
+        						  <additional-query>{cts:document-query($SearchPath)}</additional-query>
+        						</options>
+        let $SearchResponse := search:search($TermToSearch, $SearchOption, $Start, $PageLength)
+        let $SearchMatches := $SearchResponse//search:match
+        return count($SearchMatches)
+};
+
 
 (: Attribute Range Indexes must be created before using this function  Channel/@channelID :)
 declare function GetSpecificResult($TextToSearch as xs:string, $TermToSearch as xs:string, $PageLength as xs:integer, $StartPage as xs:integer, $Mode as xs:string, $SortBy as xs:string, $ChannelID as xs:string)
@@ -437,16 +495,16 @@ declare function GetSpecificResult($TextToSearch as xs:string, $TermToSearch as 
                               then	<sort-order type="xs:dateTime" direction="ascending"><element ns="" name="FilteredPubDate"/></sort-order> 
 							  else
 							  if( $SortBy eq "CreatedDes" )
-                              then	<sort-order type="xs:string" collation="http://marklogic.com/collation/" direction="descending"><element ns="" name="VideoCreatedDate"/></sort-order> 
+                              then	<sort-order type="xs:dateTime" direction="descending"><element ns="" name="VideoCreatedDate"/></sort-order> 
 							  else
 							  if( $SortBy eq "CreatedAsc" )
-                              then	<sort-order type="xs:string" collation="http://marklogic.com/collation/" direction="ascending"><element ns="" name="VideoCreatedDate"/></sort-order> 
+                              then	<sort-order type="xs:dateTime" direction="ascending"><element ns="" name="VideoCreatedDate"/></sort-order> 
 							  else
 							  if( $SortBy eq "Popular" )
-                              then	<sort-order type="xs:integer" collation="http://marklogic.com/collation/" direction="descending"><element ns="" name="ViewCount"/></sort-order> 
+                              then	<sort-order type="xs:int" direction="descending"><element ns="" name="ViewCount"/></sort-order> 
 							  else
 							  if( $SortBy eq "Like" )
-                              then	<sort-order type="xs:integer" collation="http://marklogic.com/collation/" direction="descending"><element ns="" name="LikeCount"/></sort-order> 
+                              then	<sort-order type="xs:int" direction="descending"><element ns="" name="LikeCount"/></sort-order> 
 							  else()
 							}
 							<constraint name="PriceType">
@@ -716,21 +774,3 @@ declare function GetFacetOption()
 			                   ))
 	return $query					  
 };
-
-(:
-declare function GetVideosByChannelId($ChannelId as xs:integer, $PageLength as xs:integer, $StartPage as xs:integer)
-{
-  let $Start := if($StartPage = 1) then $StartPage else sum(($StartPage * $PageLength) - $PageLength + 1)
-  let $End   := fn:sum(xs:integer($Start) + xs:integer($PageLength))
-  let $SearchResult := <Videos>{cts:search(fn:collection($constants:PCOPY)/Video[AdvanceInfo/PermissionDetails/Permission[@permissionType eq "HideRecord" and @permissionStatus eq "no"]], cts:element-attribute-range-query(xs:QName("Channel"), xs:QName("channelID"),"=", $ChannelId))}</Videos>
-  let $SearchCount := fn:count($SearchResult/Video)
-  return
-    <Channel>
-      <ChannelCount>{$SearchCount}</ChannelCount>
-     {
-      for $EachVideo in $SearchResult/Video[position() ge $Start and position() lt $End]
-      return VIDEOS:GetVideoElementForHomePage($EachVideo)
-     }
-    </Channel>
-};
-:)
